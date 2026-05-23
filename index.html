@@ -298,7 +298,7 @@ function saveToStorage(shows) {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(shows)); } catch(e) {}
 }
 
-const DEFAULT_SHOWS = SHOW_DB.slice(0,12).map((s,i) => ({...s, id:i+1}));
+const DEFAULT_SHOWS = [];
 
 function ShowCard({show, colorIdx, onEdit, onDelete, index}) {
   const col = CARD_COLORS[colorIdx % CARD_COLORS.length];
