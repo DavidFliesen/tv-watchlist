@@ -1,5 +1,5 @@
 <!--
-  MY WATCHLIST - TV Schedule Tracker
+  TV-WATCHLIST - TV Schedule Tracker
   Copyright (c) 2026 David Fliesen / Cibola Studios
 
   MIT License - provided "as is" without warranty of any kind.
@@ -32,7 +32,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>My Watchlist</title>
+  <title>TV-Watchlist</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
@@ -725,7 +725,7 @@ function App() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `my-watchlist-${new Date().toISOString().slice(0,10)}.json`;
+    a.download = `tv-watchlist-${new Date().toISOString().slice(0,10)}.json`;
     a.click();
     URL.revokeObjectURL(url);
     showToast('✓ Watchlist saved to file');
@@ -763,11 +763,10 @@ function App() {
   return (
     <div className="app">
       <div className="header">
-        <h1>MY <span>WATCH</span>LIST</h1>
+        <h1>TV-<span>WATCH</span>LIST</h1>
         <div className="header-sub">2025–2026 TV Season Tracker</div>
         <div className="header-badges">
           <span className="badge">📺 {shows.length} Shows</span>
-          <span className="badge">🔍 {SHOW_DB.length} Show Database</span>
           <a href="https://github.com/DavidFliesen/tv-watchlist" target="_blank" className="badge" style={{textDecoration:"none",cursor:"pointer"}}>📖 More About App</a>
           <span className="badge">💾 Auto-Saved</span>
         </div>

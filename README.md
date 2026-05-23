@@ -1,26 +1,52 @@
-# 📺 My Watchlist — TV Schedule Tracker
+# 📺 TV-Watchlist — TV Schedule Tracker
 
-A beautiful, fully offline TV show watchlist tracker with a 65-show database, smart search, colored cards, and next-season return dates. No account required. No API keys. No tokens. Just open it in a browser and go.
+A beautiful, fully self-contained TV show tracker. Search from a built-in database of 65 shows, look up any show on the internet automatically, manage your personal list, and track next-season return dates — all in a single HTML file with no account, no API keys, and no installation required.
+
+🔗 **Live app:** [davidfliesen.github.io/tv-watchlist](https://davidfliesen.github.io/tv-watchlist)  
+📁 **Repository:** [github.com/DavidFliesen/tv-watchlist](https://github.com/DavidFliesen/tv-watchlist)
 
 -----
 
 ## ✨ Features
 
-- **65-show built-in database** — search by name and all details fill in automatically
-- **Live internet search** — automatically queries [TVmaze](https://www.tvmaze.com) when a show isn’t in the local database; works for any TV show worldwide
-- **Smart fuzzy search** — finds shows even from partial names or keywords
-- **Next Season info** — shows estimated return dates, TBD status, or ended/cancelled
-- **Add / Edit / Delete** — fully manage your personal watchlist
-- **Colored show cards** — each show gets a unique color theme for easy scanning
-- **Network filter bar** — filter your list by CBS, Netflix, Prime Video, etc.
-- **Status badges** — color-coded Renewed, Airing, In Production, Ended, Cancelled
-- **Similar show recommendations** — 3 suggestions per show
-- **Auto-saved** — your watchlist persists in browser localStorage automatically
-- **Save Data** — download your entire watchlist as a `.json` backup file anytime
-- **Upload Data** — restore a previously saved `.json` file to reload your watchlist
-- **Clear All** — wipe your watchlist with a confirmation prompt (with tip to save first)
-- **Mobile friendly** — responsive layout works on phone, tablet, and desktop
-- **Zero dependencies** — single HTML file, no build step, no server needed
+### 🔍 Show Search & Lookup
+
+- **65-show built-in database** — instant results for popular shows with all details pre-filled
+- **Live internet search** — automatically queries the free [TVmaze API](https://www.tvmaze.com/api) when a show isn’t found locally; works for virtually any TV show ever made, worldwide
+- **Smart fuzzy search** — finds shows from partial names or keywords, no exact spelling required
+- **Two-tier results** — local “In Database” results appear instantly; “Found Online 🌐” internet results load automatically after a short pause
+- **Duplicate detection** — if you try to add a show already on your list, the app tells you it’s already there and directs you to the edit button instead of creating a duplicate
+- **Manual entry fallback** — if a show isn’t found anywhere, enter all details yourself
+
+### 📋 Show Cards
+
+- **Colored show cards** — each show gets a unique color theme (purple, green, teal, gold, etc.) for easy visual scanning
+- **Next Season banner** — prominent display of estimated return date, TBD, in production, or ended status with matching icons (📅 ⏳ 🎬 🏁)
+- **Air day & time** — shows the broadcast day and ET time for network shows
+- **Color-coded status badges** — Renewed (green), Airing (purple), In Production (blue), Final Season (gold), Ended (red), Cancelled (orange)
+- **Similar show recommendations** — 3 suggestions per show based on genre; internet-found shows get genre-matched recommendations automatically from a 27-genre recommendation map
+
+### 📝 Show Management
+
+- **Add shows** — type a name and pick from search results; all fields populate automatically
+- **Edit shows** — update any field on any card with the ✏️ button
+- **Delete shows** — remove individual shows with the 🗑️ button and a confirmation prompt
+- **Filter by network** — filter your list by any network or streaming service dynamically built from your shows
+- **Starts empty** — the app opens with a clean slate so you build your own personal list
+
+### 💾 Data Management
+
+- **Auto-saved** — every change is saved to browser `localStorage` automatically
+- **Save Data** — export your full watchlist as a dated `.json` backup file
+- **Upload Data** — restore any previously saved `.json` file to reload your watchlist
+- **Clear All** — wipe your entire watchlist with a confirmation prompt and a reminder to save first
+
+### 📱 Design & Accessibility
+
+- **Mobile friendly** — responsive grid layout works on phone, tablet, and desktop
+- **Large readable text** — Inter font at comfortable sizes optimized for all screen sizes
+- **Sticky toolbar** — network filter bar stays at the top while you scroll
+- **Zero dependencies** — single `.html` file, no build step, no server, no npm
 
 -----
 
@@ -29,94 +55,114 @@ A beautiful, fully offline TV show watchlist tracker with a 65-show database, sm
 ### Option A — GitHub Pages (recommended)
 
 1. Fork or clone this repository
-1. Make sure the file is named `index.html` in the root of the repo
+1. Rename the file to `index.html` in the root of your repo (if not already)
 1. Go to **Settings → Pages → Source → Deploy from branch → main**
-1. Your app will be live at `https://yourusername.github.io/your-repo-name`
+1. Your app will be live at `https://yourusername.github.io/your-repo-name` within a minute
 
 ### Option B — Run locally
 
-Just double-click `tv-watchlist.html` (or `index.html`) in any modern browser — Chrome, Firefox, Safari, or Edge. No web server needed.
+Double-click `tv-watchlist.html` (or `index.html`) in any modern browser — Chrome, Firefox, Safari, or Edge. No web server, no setup, no internet required (except for TVmaze show lookups).
 
 ### Option C — Share the file directly
 
-Send the HTML file to anyone. They open it in their browser and it works immediately. Their watchlist is saved in their own browser.
+Send the HTML file to anyone. They open it in their browser and it works immediately. Their watchlist is saved in their own browser, completely separate from yours.
 
 -----
 
 ## 📋 How To Use
 
-|Action                |How                                                                                                                  |
-|----------------------|---------------------------------------------------------------------------------------------------------------------|
-|Add a show            |Click **+ ADD SHOW**, type a name — local database results appear instantly, then internet results load automatically|
-|Show not found locally|Results labeled **Found Online 🌐** pull live data from TVmaze                                                        |
-|Show not in any search|Click “None of these — enter manually” to fill in details yourself                                                   |
-|Edit a show           |Click the ✏️ pencil icon on any card                                                                                  |
-|Delete a show         |Click the 🗑️ trash icon and confirm                                                                                   |
-|Filter by network     |Click any network pill in the toolbar                                                                                |
-|**Save Data**         |Click 💾 **Save Data** in the data toolbar — downloads a `.json` backup file                                          |
-|**Upload Data**       |Click 📂 **Upload Data** — restore a previously saved `.json` file                                                    |
-|**Clear All**         |Click 🗑️ **Clear All** — removes all shows after a confirmation prompt                                                |
-|Your data             |Auto-saved to your browser’s localStorage on every change                                                            |
+|Action                     |How                                                                                                       |
+|---------------------------|----------------------------------------------------------------------------------------------------------|
+|**Add a show**             |Click **+ ADD SHOW**, type a name — local results appear instantly, internet results load automatically   |
+|**Show found online**      |Results labeled **Found Online 🌐** pull live data from TVmaze including description, network, and schedule|
+|**Show not found anywhere**|Click “None of these — enter manually” to fill in all fields yourself                                     |
+|**Duplicate show**         |If a show is already in your list, the app warns you instead of adding a duplicate                        |
+|**Edit a show**            |Click the ✏️ pencil icon on any card                                                                       |
+|**Delete a show**          |Click the 🗑️ trash icon on any card and confirm                                                            |
+|**Filter by network**      |Click any network pill in the sticky toolbar                                                              |
+|**Save Data**              |Click 💾 **Save Data** in the data toolbar — downloads a dated `.json` backup                              |
+|**Upload Data**            |Click 📂 **Upload Data** — loads a previously saved `.json` file                                           |
+|**Clear All**              |Click 🗑️ **Clear All** — removes all shows after a confirmation prompt                                     |
+|**Learn more**             |Click 📖 **More About App** in the header to visit this repository                                         |
 
 -----
 
-## 🗄️ Show Database
+## 🌐 Internet Show Lookup
 
-The built-in database includes 65 popular shows across all major networks and streaming services:
+When you type a show name that isn’t in the built-in database, the app automatically searches the internet via the [TVmaze API](https://www.tvmaze.com/api) after a short pause. Results appear in a separate **“Found Online 🌐”** section with a blue **WEB** badge.
+
+Selecting an internet result auto-fills:
+
+- Show title and network/streaming service
+- Air day and time
+- Current status (Airing, Ended, In Production, etc.)
+- Show description
+- **3 similar show recommendations** — generated automatically from the show’s genre tags using a built-in 27-genre recommendation map covering Drama, Crime, Comedy, Thriller, Sci-Fi, Fantasy, Mystery, Western, Medical, Legal, Espionage, Religion, War, and more
+
+The “Next Season” field is left for you to fill in, since TVmaze doesn’t track future season dates.
+
+-----
+
+## 🗄️ Built-in Show Database
+
+The built-in database includes 65 popular shows across all major networks and streaming services. Searching these is instant and fully offline.
 
 **Broadcast:** ABC, CBS, NBC, FOX  
-**Streaming:** Netflix, Prime Video, Hulu, Max, Paramount+, Apple TV+, Disney+, Peacock, FX
+**Streaming:** Netflix, Prime Video, Hulu, Max, Paramount+, Apple TV+, Disney+, Peacock, FX / Hulu
 
-Includes shows from these genres: drama, comedy, thriller, sci-fi, procedural, fantasy, action, mystery, and more.
+Genres covered: drama, crime, comedy, thriller, action, sci-fi, fantasy, mystery, western, medical, legal, espionage, war, history, romance, and more.
 
-If a show isn’t in the database, use the manual entry form — you can fill in all fields yourself and it saves exactly like any other show.
+For any show not in the database, the live TVmaze internet search covers essentially every TV show ever broadcast or streamed anywhere in the world.
 
 -----
 
 ## 💾 Data Management
 
-Your watchlist is automatically saved to browser `localStorage` as you make changes. The data toolbar (below the network filter bar) gives you three additional controls:
+Your watchlist saves automatically to browser `localStorage` on every change. The data toolbar (below the network filter bar) provides three additional controls:
 
-**Save Data** — exports your full watchlist as a dated `.json` file (e.g. `my-watchlist-2026-05-22.json`). Use this to back up your list, move it to another browser or device, or share it with someone else.
+**💾 Save Data** — exports your watchlist as a dated `.json` file (e.g. `tv-watchlist-2026-05-22.json`). Use this to back up your list, transfer it to another device or browser, or share it with someone.
 
-**Upload Data** — loads a `.json` file you previously saved. This completely replaces your current watchlist with the contents of the file. The app validates the file before applying it.
+**📂 Upload Data** — opens a file picker and loads a previously saved `.json` file, completely replacing the current watchlist. The app validates the file format before applying it.
 
-**Clear All** — removes every show from your watchlist after a confirmation prompt. The dialog reminds you to save a backup first. This action cannot be undone.
+**🗑️ Clear All** — removes every show from your watchlist after a two-step confirmation. The dialog reminds you to save a backup first. Cannot be undone.
 
-> **Tip:** Before clearing or switching browsers, always use **Save Data** first. Then use **Upload Data** on the new browser to restore everything instantly.
+> **Tip:** Before switching browsers or clearing your list, use **Save Data** first. Then **Upload Data** on any other browser to restore your full list instantly.
 
 -----
 
 ## 🔒 Privacy
 
-- **No data leaves your device** — ever
-- No analytics, no tracking, no cookies
-- Show **search** queries are sent to the free [TVmaze API](https://www.tvmaze.com/api) to look up show info — no account or key required, and no personal data is sent
-- No account, no login, no email required
-- Your watchlist lives only in your own browser’s `localStorage`
-- Clearing browser data will reset your watchlist to the defaults
+- **Your watchlist data never leaves your device** — it lives only in your browser’s `localStorage`
+- No analytics, no tracking, no cookies, no ads
+- No account, no login, no email address required
+- Show **search queries** are sent to the free [TVmaze API](https://www.tvmaze.com/api) for show lookups — no personal data is included, no account required, completely free
+- Clearing your browser’s site data will reset the watchlist to empty
 
 -----
 
 ## 🛠️ Technical Details
 
-|Item             |Detail                                                                                                |
-|-----------------|------------------------------------------------------------------------------------------------------|
-|Stack            |Vanilla HTML + CSS + React 18 (via CDN)                                                               |
-|JSX transpilation|Babel Standalone (via CDN)                                                                            |
-|Storage          |Browser `localStorage`                                                                                |
-|Fonts            |Google Fonts — Inter + Bebas Neue                                                                     |
-|External calls   |Google Fonts (cosmetic) + [TVmaze API](https://www.tvmaze.com/api) (free show lookup, no key required)|
-|File size        |~50 KB (single file)                                                                                  |
-|Browser support  |Chrome, Firefox, Safari, Edge (any modern browser)                                                    |
+|Item             |Detail                                                                        |
+|-----------------|------------------------------------------------------------------------------|
+|Stack            |Vanilla HTML + CSS + React 18 (via CDN)                                       |
+|JSX transpilation|Babel Standalone (via CDN)                                                    |
+|Storage          |Browser `localStorage` (auto-save + manual export/import)                     |
+|Fonts            |Google Fonts — Inter + Bebas Neue                                             |
+|Show database    |65 hardcoded shows with full metadata                                         |
+|Internet search  |[TVmaze API](https://www.tvmaze.com/api) — free, no key required, CORS-enabled|
+|Recommendations  |27-genre built-in map for genre-matched suggestions                           |
+|External calls   |Google Fonts (cosmetic only) + TVmaze API (show search only)                  |
+|File size        |~72 KB (single file, everything included)                                     |
+|Browser support  |Chrome, Firefox, Safari, Edge (any modern browser)                            |
+|Starts with      |Empty list — users build their own from scratch                               |
 
 -----
 
 ## 📄 License
 
-MIT License — see [LICENSE](#license-text) below.
+MIT License — see [License Text](#-license-text) below.
 
-This software is provided **“as is”**, without warranty of any kind. You are free to use, copy, modify, and distribute it for any purpose.
+This software is provided **“as is”**, without warranty of any kind. You are free to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies for any purpose.
 
 -----
 
@@ -170,6 +216,6 @@ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
 AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
 ```
