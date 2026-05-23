@@ -365,6 +365,65 @@ function ShowCard({show, colorIdx, onEdit, onDelete, index}) {
 }
 
 // ── TVmaze internet search ──────────────────────────────────────────────────
+// Genre → recommended shows mapping
+const GENRE_RECS = {
+  "Drama":       ["Yellowstone","Succession","The Crown","Ozark","The White Lotus"],
+  "Crime":       ["Bosch","Lincoln Lawyer","True Detective","Fargo","Mindhunter"],
+  "Comedy":      ["Abbott Elementary","Ted Lasso","Ghosts","Shrinking","Schitt's Creek"],
+  "Thriller":    ["Reacher","Slow Horses","Jack Ryan","The Terminal List","Lioness"],
+  "Action":      ["Reacher","Jack Ryan","The Terminal List","Fallout","The Boys"],
+  "Adventure":   ["Outlander","The Last Kingdom","Shogun","1883","For All Mankind"],
+  "Horror":      ["Stranger Things","The Walking Dead","The Haunting of Hill House","American Horror Story","Dark"],
+  "Sci-Fi":      ["Fallout","Severance","For All Mankind","Stranger Things","The Expanse"],
+  "Fantasy":     ["House of the Dragon","The Last Kingdom","Wednesday","Shogun","The Witcher"],
+  "Mystery":     ["Only Murders in the Building","Poker Face","True Detective","Fargo","The Afterparty"],
+  "Romance":     ["Outlander","Bridgerton","Emily in Paris","Virgin River","Sweet Magnolias"],
+  "Family":      ["Abbott Elementary","Ghosts","George & Mandy's First Marriage","Shifting Gears","Schitt's Creek"],
+  "History":     ["Shogun","The Crown","1883","Peaky Blinders","Vikings"],
+  "Western":     ["Yellowstone","1883","Justified","Deadwood","Godless"],
+  "Medical":     ["Grey's Anatomy","The Pitt","ER","The Good Doctor","House"],
+  "Legal":       ["Lincoln Lawyer","Suits","The Good Wife","Matlock","Bosch: Legacy"],
+  "Espionage":   ["Slow Horses","Lioness","The Americans","Killing Eve","Jack Ryan"],
+  "War":         ["Band of Brothers","The Pacific","Masters of the Air","Generation Kill","The Terror"],
+  "Sport":       ["Ted Lasso","All or Nothing","Last Chance U","Welcome to Wrexham","A League of Their Own"],
+  "Music":       ["Daisy Jones & The Six","Nashville","Empire","Vinyl","This Is Us"],
+  "Nature":      ["Planet Earth","Our Planet","Frozen Planet","Night on Earth","Life"],
+  "Documentary": ["Making a Murderer","The Last Dance","Wild Wild Country","The Vow","Don't F**k With Cats"],
+  "Religion":    ["The Young Pope","Midnight Mass","Fleabag","The Righteous Gemstones","Seven Seconds"],
+  "Supernatural":["Supernatural","Stranger Things","Wednesday","The OA","The Haunting of Hill House"],
+  "Animation":   ["Arcane","Invincible","Lower Decks","The Bad Batch","Primal"],
+  "Children":    ["Avatar: The Last Airbender","Bluey","Gravity Falls","Owl House","She-Ra"],
+  "Game Show":   ["Jeopardy!","Wheel of Fortune","The Price Is Right","Amazing Race","Survivor"],
+  "Reality":     ["Survivor","Amazing Race","The Bachelor","Love Is Blind","Squid Game: The Challenge"],
+  "Talk Show":   ["The Daily Show","Last Week Tonight","Late Night with Seth Meyers","Conan","The Late Show"],
+};
+
+function getGenreRecs(genres, showName) {
+  if (!genres || genres.length === 0) return [];
+  const seen = new Set([showName.toLowerCase()]);
+  const recs = [];
+  for (const genre of genres) {
+    const list = GENRE_RECS[genre] || [];
+    for (const r of list) {
+      if (!seen.has(r.toLowerCase()) && recs.length < 3) {
+        seen.add(r.toLowerCase());
+        recs.push(r);
+      }
+    }
+    if (recs.length >= 3) break;
+  }
+  // If still under 3, pull from Drama as fallback
+  if (recs.length < 3) {
+    for (const r of (GENRE_RECS["Drama"] || [])) {
+      if (!seen.has(r.toLowerCase()) && recs.length < 3) {
+        seen.add(r.toLowerCase());
+        recs.push(r);
+      }
+    }
+  }
+  return recs;
+}
+
 async function searchTVMaze(query) {
   try {
     const res = await fetch(`https://api.tvmaze.com/search/shows?q=${encodeURIComponent(query)}`);
@@ -382,15 +441,17 @@ async function searchTVMaze(query) {
       else if (s.status === 'Ended') status = 'Ended';
       else if (s.status === 'In Development') status = 'In Production';
       else status = s.status || '';
+      const genres = s.genres || [];
+      const recommendations = getGenreRecs(genres, s.name || '');
       return {
         name: s.name || '',
         network,
         airDay: days,
         airTime: time ? `${time} ET` : '',
         status,
-        nextSeason: status === 'Ended' ? `Ended` : 'TBD',
+        nextSeason: status === 'Ended' ? 'Ended' : 'TBD',
         summary: summary.length > 300 ? summary.slice(0, 297) + '…' : summary,
-        recommendations: [],
+        recommendations,
         _fromInternet: true,
       };
     });
