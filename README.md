@@ -178,7 +178,6 @@ David is a Hybrid Generative AI Multimedia Developer with a background spanning 
 - 🎖️ U.S. Navy Combat Camera — photojournalism and visual media
 - 🎮 DoD simulation & virtual agents — Army Research Lab, Sonalysts (MEDATAR, Sim Wars, Project MOSES, MMOWGLI)
 - 🤖 Generative AI development — LangChain, LangGraph, Groq, OpenAI, Anthropic
-- 📱 Meta Quest VR developer
 - 🎵 Suno AI music creator
 - 🎙️ Voice over artist & character animator
 - 📰 Creator of *Sisters of Summerville* — a daily AI-generated comic strip
