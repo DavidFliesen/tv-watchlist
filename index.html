@@ -142,6 +142,11 @@
     .btn-link{background:transparent;border:none;color:var(--muted);font-family:'Inter',sans-serif;font-size:15px;font-weight:500;padding:6px 4px;cursor:pointer;text-decoration:underline;text-underline-offset:3px;}
     .btn-link:hover{color:var(--accent);}
     .auto-filled-tag{display:inline-flex;align-items:center;gap:5px;background:rgba(75,222,128,.1);border:1px solid rgba(75,222,128,.25);color:#4ade80;font-size:14px;font-weight:600;padding:4px 12px;border-radius:6px;}
+    .duplicate-warning{background:rgba(232,184,75,.1);border:1px solid rgba(232,184,75,.4);border-radius:10px;padding:18px 20px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:10px;}
+    .duplicate-warning .dup-icon{font-size:36px;}
+    .duplicate-warning .dup-title{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:#e8b84b;}
+    .duplicate-warning .dup-msg{color:rgba(255,255,255,.75);font-size:15px;line-height:1.6;}
+    .duplicate-warning .dup-name{color:#fff;font-weight:700;}
     .confirm-modal{background:#1a1018;border:2px solid rgba(232,91,75,.4);border-radius:14px;width:100%;max-width:400px;padding:32px;text-align:center;animation:slideUp .2s ease;}
     .confirm-modal h3{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:3px;color:var(--accent2);margin-bottom:12px;}
     .confirm-modal p{color:#b0b0c8;font-size:17px;line-height:1.6;margin-bottom:26px;}
@@ -394,7 +399,7 @@ async function searchTVMaze(query) {
   }
 }
 
-function ShowForm({initial, onSave, onClose}) {
+function ShowForm({initial, onSave, onClose, existingShows=[]}) {
   const isEdit = !!initial;
   const [view, setView] = useState(isEdit ? "form" : "search");
   const [query, setQuery] = useState("");
@@ -402,6 +407,7 @@ function ShowForm({initial, onSave, onClose}) {
   const [netResults, setNetResults] = useState([]);
   const [netSearching, setNetSearching] = useState(false);
   const [netSearched, setNetSearched] = useState(false);
+  const [dupWarning, setDupWarning] = useState('');
   const [autoFilled, setAutoFilled] = useState(false);
   const [autoFilledSource, setAutoFilledSource] = useState('');
   const [form, setForm] = useState(
@@ -420,6 +426,7 @@ function ShowForm({initial, onSave, onClose}) {
   function handleQuery(e) {
     const q = e.target.value;
     setQuery(q);
+    setDupWarning('');
     const local = fuzzySearch(q);
     setLocalResults(local);
     setNetResults([]);
@@ -442,6 +449,9 @@ function ShowForm({initial, onSave, onClose}) {
   }
 
   function selectResult(show) {
+    const dupe = existingShows.find(s => s.name.toLowerCase() === show.name.toLowerCase());
+    if (dupe) { setDupWarning(show.name); return; }
+    setDupWarning('');
     setForm({...show, rec1:show.recommendations?.[0]||"", rec2:show.recommendations?.[1]||"", rec3:show.recommendations?.[2]||""});
     setAutoFilled(true);
     setAutoFilledSource(show._fromInternet ? 'internet' : 'database');
@@ -449,7 +459,11 @@ function ShowForm({initial, onSave, onClose}) {
   }
 
   function goManual() {
-    setForm(f => ({...f, name:query.trim()||f.name}));
+    const name = query.trim();
+    const dupe = name && existingShows.find(s => s.name.toLowerCase() === name.toLowerCase());
+    if (dupe) { setDupWarning(name); return; }
+    setDupWarning('');
+    setForm(f => ({...f, name: name||f.name}));
     setAutoFilled(false);
     setView("form");
   }
@@ -477,7 +491,15 @@ function ShowForm({initial, onSave, onClose}) {
           <div className="modal-body">
             <p className="search-hint">Type a show name — picks from our database or searches <strong>the internet</strong> automatically.</p>
             <input ref={inputRef} className="search-input" placeholder="Search any TV show…" value={query} onChange={handleQuery}/>
-            {query.trim().length >= 2 && (
+            {dupWarning !== '' && (
+              <div className="duplicate-warning">
+                <div className="dup-icon">📋</div>
+                <div className="dup-title">Already in Your Watchlist</div>
+                <div className="dup-msg"><span className="dup-name">{dupWarning}</span> is already on your watchlist. To make changes, close this and use the ✏️ edit button on that show's card.</div>
+                <button className="btn-cancel" style={{marginTop:4}} onClick={()=>setDupWarning('')}>Search Again</button>
+              </div>
+            )}
+            {dupWarning === '' && query.trim().length >= 2 && (
               <div className="results-list">
                 {localResults.length > 0 && (
                   <>
@@ -728,7 +750,7 @@ function App() {
 
       <div className="footer-note">DATABASE OF {SHOW_DB.length} SHOWS · SCHEDULE CURRENT AS OF 2026 · DATES SUBJECT TO CHANGE</div>
 
-      {showForm   && <ShowForm onSave={handleAdd}  onClose={()=>setShowForm(false)}/>}
+      {showForm   && <ShowForm onSave={handleAdd}  onClose={()=>setShowForm(false)} existingShows={shows}/>}
       {editShow   && <ShowForm initial={editShow}  onSave={handleEdit} onClose={()=>setEditShow(null)}/>}
       {deleteShow && <ConfirmDelete show={deleteShow} onConfirm={handleDelete} onCancel={()=>setDeleteShow(null)}/>}
       {confirmClear && (
