@@ -7,6 +7,7 @@ A beautiful, fully offline TV show watchlist tracker with a 65-show database, sm
 ## ✨ Features
 
 - **65-show built-in database** — search by name and all details fill in automatically
+- **Live internet search** — automatically queries [TVmaze](https://www.tvmaze.com) when a show isn’t in the local database; works for any TV show worldwide
 - **Smart fuzzy search** — finds shows even from partial names or keywords
 - **Next Season info** — shows estimated return dates, TBD status, or ended/cancelled
 - **Add / Edit / Delete** — fully manage your personal watchlist
@@ -44,17 +45,18 @@ Send the HTML file to anyone. They open it in their browser and it works immedia
 
 ## 📋 How To Use
 
-|Action              |How                                                                        |
-|--------------------|---------------------------------------------------------------------------|
-|Add a show          |Click **+ ADD SHOW**, type a name, pick from the search results            |
-|Show not in database|Click “Enter manually” to fill in your own details                         |
-|Edit a show         |Click the ✏️ pencil icon on any card                                        |
-|Delete a show       |Click the 🗑️ trash icon and confirm                                         |
-|Filter by network   |Click any network pill in the toolbar                                      |
-|**Save Data**       |Click 💾 **Save Data** in the data toolbar — downloads a `.json` backup file|
-|**Upload Data**     |Click 📂 **Upload Data** — restore a previously saved `.json` file          |
-|**Clear All**       |Click 🗑️ **Clear All** — removes all shows after a confirmation prompt      |
-|Your data           |Auto-saved to your browser’s localStorage on every change                  |
+|Action                |How                                                                                                                  |
+|----------------------|---------------------------------------------------------------------------------------------------------------------|
+|Add a show            |Click **+ ADD SHOW**, type a name — local database results appear instantly, then internet results load automatically|
+|Show not found locally|Results labeled **Found Online 🌐** pull live data from TVmaze                                                        |
+|Show not in any search|Click “None of these — enter manually” to fill in details yourself                                                   |
+|Edit a show           |Click the ✏️ pencil icon on any card                                                                                  |
+|Delete a show         |Click the 🗑️ trash icon and confirm                                                                                   |
+|Filter by network     |Click any network pill in the toolbar                                                                                |
+|**Save Data**         |Click 💾 **Save Data** in the data toolbar — downloads a `.json` backup file                                          |
+|**Upload Data**       |Click 📂 **Upload Data** — restore a previously saved `.json` file                                                    |
+|**Clear All**         |Click 🗑️ **Clear All** — removes all shows after a confirmation prompt                                                |
+|Your data             |Auto-saved to your browser’s localStorage on every change                                                            |
 
 -----
 
@@ -89,6 +91,7 @@ Your watchlist is automatically saved to browser `localStorage` as you make chan
 
 - **No data leaves your device** — ever
 - No analytics, no tracking, no cookies
+- Show **search** queries are sent to the free [TVmaze API](https://www.tvmaze.com/api) to look up show info — no account or key required, and no personal data is sent
 - No account, no login, no email required
 - Your watchlist lives only in your own browser’s `localStorage`
 - Clearing browser data will reset your watchlist to the defaults
@@ -97,15 +100,15 @@ Your watchlist is automatically saved to browser `localStorage` as you make chan
 
 ## 🛠️ Technical Details
 
-|Item             |Detail                                                    |
-|-----------------|----------------------------------------------------------|
-|Stack            |Vanilla HTML + CSS + React 18 (via CDN)                   |
-|JSX transpilation|Babel Standalone (via CDN)                                |
-|Storage          |Browser `localStorage`                                    |
-|Fonts            |Google Fonts — Inter + Bebas Neue                         |
-|External calls   |Google Fonts only (purely cosmetic — app works without it)|
-|File size        |~50 KB (single file)                                      |
-|Browser support  |Chrome, Firefox, Safari, Edge (any modern browser)        |
+|Item             |Detail                                                                                                |
+|-----------------|------------------------------------------------------------------------------------------------------|
+|Stack            |Vanilla HTML + CSS + React 18 (via CDN)                                                               |
+|JSX transpilation|Babel Standalone (via CDN)                                                                            |
+|Storage          |Browser `localStorage`                                                                                |
+|Fonts            |Google Fonts — Inter + Bebas Neue                                                                     |
+|External calls   |Google Fonts (cosmetic) + [TVmaze API](https://www.tvmaze.com/api) (free show lookup, no key required)|
+|File size        |~50 KB (single file)                                                                                  |
+|Browser support  |Chrome, Firefox, Safari, Edge (any modern browser)                                                    |
 
 -----
 

@@ -116,6 +116,15 @@
     .result-arrow{color:var(--accent);font-size:18px;flex-shrink:0;}
     .no-results{text-align:center;padding:16px;color:var(--muted);font-size:16px;}
     .no-results strong{color:var(--accent);}
+    .results-section-label{font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:6px 2px 4px;display:flex;align-items:center;gap:8px;}
+    .results-section-label.local{color:#e8b84b;}
+    .results-section-label.internet{color:#38bdf8;}
+    .results-section-label::after{content:'';flex:1;height:1px;background:currentColor;opacity:0.2;}
+    .result-item.internet{border-color:#1a3a4a;}
+    .result-item.internet:hover{border-color:#38bdf8;background:#0f1f2e;}
+    .internet-badge{font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;background:rgba(56,189,248,.15);border:1px solid rgba(56,189,248,.3);color:#38bdf8;padding:2px 7px;border-radius:4px;flex-shrink:0;}
+    .searching-indicator{display:flex;align-items:center;justify-content:center;gap:8px;padding:12px;color:var(--muted);font-size:14px;}
+    .mini-spinner{width:14px;height:14px;border:2px solid #2e2e42;border-top-color:#38bdf8;border-radius:50%;animation:spin 0.8s linear infinite;flex-shrink:0;}
     .form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
     .form-group{display:flex;flex-direction:column;gap:7px;}
     .form-group.full{grid-column:1/-1;}
@@ -350,30 +359,92 @@ function ShowCard({show, colorIdx, onEdit, onDelete, index}) {
   );
 }
 
+// ── TVmaze internet search ──────────────────────────────────────────────────
+async function searchTVMaze(query) {
+  try {
+    const res = await fetch(`https://api.tvmaze.com/search/shows?q=${encodeURIComponent(query)}`);
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.slice(0, 5).map(item => {
+      const s = item.show;
+      const network = s.network?.name || s.webChannel?.name || '';
+      const days = (s.schedule?.days || []).join('/');
+      const time = s.schedule?.time || '';
+      const rawSummary = s.summary || '';
+      const summary = rawSummary.replace(/<[^>]*>/g, '').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&#39;/g,"'").replace(/&quot;/g,'"').trim();
+      let status = '';
+      if (s.status === 'Running') status = 'Airing';
+      else if (s.status === 'Ended') status = 'Ended';
+      else if (s.status === 'In Development') status = 'In Production';
+      else status = s.status || '';
+      return {
+        name: s.name || '',
+        network,
+        airDay: days,
+        airTime: time ? `${time} ET` : '',
+        status,
+        nextSeason: status === 'Ended' ? `Ended` : 'TBD',
+        summary: summary.length > 300 ? summary.slice(0, 297) + '…' : summary,
+        recommendations: [],
+        _fromInternet: true,
+      };
+    });
+  } catch(e) {
+    return [];
+  }
+}
+
 function ShowForm({initial, onSave, onClose}) {
   const isEdit = !!initial;
   const [view, setView] = useState(isEdit ? "form" : "search");
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState([]);
+  const [localResults, setLocalResults] = useState([]);
+  const [netResults, setNetResults] = useState([]);
+  const [netSearching, setNetSearching] = useState(false);
+  const [netSearched, setNetSearched] = useState(false);
   const [autoFilled, setAutoFilled] = useState(false);
+  const [autoFilledSource, setAutoFilledSource] = useState('');
   const [form, setForm] = useState(
     isEdit
       ? {...initial, rec1:initial.recommendations?.[0]||"", rec2:initial.recommendations?.[1]||"", rec3:initial.recommendations?.[2]||""}
       : {...EMPTY_FORM}
   );
   const inputRef = useRef(null);
+  const netTimerRef = useRef(null);
 
   useEffect(() => { if (view==="search" && inputRef.current) inputRef.current.focus(); }, [view]);
+
+  // Cleanup timer on unmount
+  useEffect(() => () => { if (netTimerRef.current) clearTimeout(netTimerRef.current); }, []);
 
   function handleQuery(e) {
     const q = e.target.value;
     setQuery(q);
-    setResults(fuzzySearch(q));
+    const local = fuzzySearch(q);
+    setLocalResults(local);
+    setNetResults([]);
+    setNetSearched(false);
+    setNetSearching(false);
+    if (netTimerRef.current) clearTimeout(netTimerRef.current);
+    if (q.trim().length >= 2) {
+      // Auto-search internet after short pause
+      netTimerRef.current = setTimeout(async () => {
+        setNetSearching(true);
+        const results = await searchTVMaze(q);
+        // Deduplicate against local results
+        const localNames = new Set(local.map(s => s.name.toLowerCase()));
+        const filtered = results.filter(s => !localNames.has(s.name.toLowerCase()));
+        setNetResults(filtered);
+        setNetSearching(false);
+        setNetSearched(true);
+      }, 600);
+    }
   }
 
   function selectResult(show) {
     setForm({...show, rec1:show.recommendations?.[0]||"", rec2:show.recommendations?.[1]||"", rec3:show.recommendations?.[2]||""});
     setAutoFilled(true);
+    setAutoFilledSource(show._fromInternet ? 'internet' : 'database');
     setView("form");
   }
 
@@ -387,8 +458,12 @@ function ShowForm({initial, onSave, onClose}) {
 
   function handleSave() {
     if (!form.name.trim()) return;
-    onSave({...form, name:form.name.trim(), recommendations:[form.rec1,form.rec2,form.rec3].filter(Boolean)});
+    const cleanForm = {...form};
+    delete cleanForm._fromInternet;
+    onSave({...cleanForm, name:cleanForm.name.trim(), recommendations:[cleanForm.rec1,cleanForm.rec2,cleanForm.rec3].filter(Boolean)});
   }
+
+  const hasAnyResults = localResults.length > 0 || netResults.length > 0;
 
   return (
     <div className="overlay" onClick={e => e.target===e.currentTarget && onClose()}>
@@ -400,30 +475,59 @@ function ShowForm({initial, onSave, onClose}) {
 
         {view === "search" && (
           <div className="modal-body">
-            <p className="search-hint">Type a show name — pick from the list and all details fill in automatically.</p>
-            <input ref={inputRef} className="search-input" placeholder="Search shows…" value={query} onChange={handleQuery}/>
-            {query.trim() !== "" && (
-              results.length > 0 ? (
-                <div className="results-list">
-                  {results.map((show,i) => (
-                    <div key={i} className="result-item" onClick={() => selectResult(show)}>
-                      <div>
-                        <div className="result-name">{show.name}</div>
-                        <div className="result-meta">{show.network} · {show.status}</div>
+            <p className="search-hint">Type a show name — picks from our database or searches <strong>the internet</strong> automatically.</p>
+            <input ref={inputRef} className="search-input" placeholder="Search any TV show…" value={query} onChange={handleQuery}/>
+            {query.trim().length >= 2 && (
+              <div className="results-list">
+                {localResults.length > 0 && (
+                  <>
+                    <div className="results-section-label local">In Database</div>
+                    {localResults.map((show,i) => (
+                      <div key={`l${i}`} className="result-item" onClick={() => selectResult(show)}>
+                        <div>
+                          <div className="result-name">{show.name}</div>
+                          <div className="result-meta">{show.network} · {show.status}</div>
+                        </div>
+                        <div className="result-arrow">→</div>
                       </div>
-                      <div className="result-arrow">→</div>
-                    </div>
-                  ))}
-                  <div style={{textAlign:"center",paddingTop:4}}>
-                    <button className="btn-link" onClick={goManual}>Not in list — enter "{query}" manually →</button>
+                    ))}
+                  </>
+                )}
+                {netSearching && (
+                  <div className="searching-indicator">
+                    <div className="mini-spinner"/>
+                    <span>Searching internet…</span>
                   </div>
-                </div>
-              ) : (
-                <div className="no-results">
-                  No matches for "<strong>{query}</strong>"<br/>
-                  <button className="btn-link" onClick={goManual}>Add "{query}" manually →</button>
-                </div>
-              )
+                )}
+                {netResults.length > 0 && (
+                  <>
+                    <div className="results-section-label internet">Found Online 🌐</div>
+                    {netResults.map((show,i) => (
+                      <div key={`n${i}`} className="result-item internet" onClick={() => selectResult(show)}>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div className="result-name">{show.name}</div>
+                          <div className="result-meta">{show.network}{show.network && show.status ? ' · ' : ''}{show.status}</div>
+                        </div>
+                        <div style={{display:'flex',alignItems:'center',gap:8}}>
+                          <span className="internet-badge">WEB</span>
+                          <span className="result-arrow" style={{color:'#38bdf8'}}>→</span>
+                        </div>
+                      </div>
+                    ))}
+                  </>
+                )}
+                {netSearched && !netSearching && netResults.length === 0 && localResults.length === 0 && (
+                  <div className="no-results">
+                    No matches found for "<strong>{query}</strong>"<br/>
+                    <button className="btn-link" onClick={goManual}>Add "{query}" manually →</button>
+                  </div>
+                )}
+                {hasAnyResults && (
+                  <div style={{textAlign:"center",paddingTop:4}}>
+                    <button className="btn-link" onClick={goManual}>None of these — enter manually →</button>
+                  </div>
+                )}
+              </div>
             )}
           </div>
         )}
@@ -431,7 +535,11 @@ function ShowForm({initial, onSave, onClose}) {
         {view === "form" && (
           <>
             <div className="modal-body">
-              {autoFilled && !isEdit && <div className="auto-filled-tag">✓ Details filled from database — edit anything below</div>}
+              {autoFilled && !isEdit && (
+                <div className="auto-filled-tag" style={autoFilledSource==='internet'?{background:'rgba(56,189,248,.1)',borderColor:'rgba(56,189,248,.3)',color:'#38bdf8'}:{}}>
+                  {autoFilledSource==='internet' ? '🌐 Details found online — review & fill in Next Season below' : '✓ Details filled from database — edit anything below'}
+                </div>
+              )}
               <div className="form-group full">
                 <label>Show Title *</label>
                 <input value={form.name} onChange={e => set("name",e.target.value)} placeholder="Show title"/>
