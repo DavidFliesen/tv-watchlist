@@ -15,6 +15,9 @@ A beautiful, fully offline TV show watchlist tracker with a 65-show database, sm
 - **Status badges** — color-coded Renewed, Airing, In Production, Ended, Cancelled
 - **Similar show recommendations** — 3 suggestions per show
 - **Auto-saved** — your watchlist persists in browser localStorage automatically
+- **Save Data** — download your entire watchlist as a `.json` backup file anytime
+- **Upload Data** — restore a previously saved `.json` file to reload your watchlist
+- **Clear All** — wipe your watchlist with a confirmation prompt (with tip to save first)
 - **Mobile friendly** — responsive layout works on phone, tablet, and desktop
 - **Zero dependencies** — single HTML file, no build step, no server needed
 
@@ -41,14 +44,17 @@ Send the HTML file to anyone. They open it in their browser and it works immedia
 
 ## 📋 How To Use
 
-|Action              |How                                                            |
-|--------------------|---------------------------------------------------------------|
-|Add a show          |Click **+ ADD SHOW**, type a name, pick from the search results|
-|Show not in database|Click “Enter manually” to fill in your own details             |
-|Edit a show         |Click the ✏️ pencil icon on any card                            |
-|Delete a show       |Click the 🗑️ trash icon and confirm                             |
-|Filter by network   |Click any network pill in the toolbar                          |
-|Your data           |Saved automatically to your browser’s localStorage             |
+|Action              |How                                                                        |
+|--------------------|---------------------------------------------------------------------------|
+|Add a show          |Click **+ ADD SHOW**, type a name, pick from the search results            |
+|Show not in database|Click “Enter manually” to fill in your own details                         |
+|Edit a show         |Click the ✏️ pencil icon on any card                                        |
+|Delete a show       |Click the 🗑️ trash icon and confirm                                         |
+|Filter by network   |Click any network pill in the toolbar                                      |
+|**Save Data**       |Click 💾 **Save Data** in the data toolbar — downloads a `.json` backup file|
+|**Upload Data**     |Click 📂 **Upload Data** — restore a previously saved `.json` file          |
+|**Clear All**       |Click 🗑️ **Clear All** — removes all shows after a confirmation prompt      |
+|Your data           |Auto-saved to your browser’s localStorage on every change                  |
 
 -----
 
@@ -62,6 +68,20 @@ The built-in database includes 65 popular shows across all major networks and st
 Includes shows from these genres: drama, comedy, thriller, sci-fi, procedural, fantasy, action, mystery, and more.
 
 If a show isn’t in the database, use the manual entry form — you can fill in all fields yourself and it saves exactly like any other show.
+
+-----
+
+## 💾 Data Management
+
+Your watchlist is automatically saved to browser `localStorage` as you make changes. The data toolbar (below the network filter bar) gives you three additional controls:
+
+**Save Data** — exports your full watchlist as a dated `.json` file (e.g. `my-watchlist-2026-05-22.json`). Use this to back up your list, move it to another browser or device, or share it with someone else.
+
+**Upload Data** — loads a `.json` file you previously saved. This completely replaces your current watchlist with the contents of the file. The app validates the file before applying it.
+
+**Clear All** — removes every show from your watchlist after a confirmation prompt. The dialog reminds you to save a backup first. This action cannot be undone.
+
+> **Tip:** Before clearing or switching browsers, always use **Save Data** first. Then use **Upload Data** on the new browser to restore everything instantly.
 
 -----
 
