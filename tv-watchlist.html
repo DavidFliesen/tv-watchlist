@@ -68,6 +68,14 @@
     .data-btn-clear{background:rgba(232,91,75,.1);border-color:rgba(232,91,75,.35);color:#f87171;}
     .data-btn-clear:hover{background:rgba(232,91,75,.2);border-color:var(--accent2);}
     input[type=file]{display:none;}
+    .view-toolbar{display:flex;align-items:center;justify-content:flex-end;gap:8px;padding:8px 24px;background:var(--bg);border-bottom:1px solid var(--border);flex-wrap:wrap;}
+    .zoom-group{display:flex;align-items:center;gap:4px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:3px;}
+    .zoom-btn{background:transparent;border:none;color:var(--muted);font-family:'Inter',sans-serif;font-size:15px;font-weight:700;width:32px;height:32px;border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;}
+    .zoom-btn:hover{background:rgba(255,255,255,.1);color:var(--text);}
+    .zoom-label{color:var(--muted);font-family:'Inter',sans-serif;font-size:13px;font-weight:600;min-width:38px;text-align:center;cursor:pointer;transition:color .15s;}
+    .zoom-label:hover{color:var(--accent);}
+    .fs-btn{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.05);border:1px solid var(--border);color:var(--muted);font-family:'Inter',sans-serif;font-size:13px;font-weight:600;padding:6px 14px;border-radius:8px;cursor:pointer;transition:all .15s;white-space:nowrap;}
+    .fs-btn:hover{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.25);color:var(--text);}
     .count-bar{padding:12px 24px;color:var(--muted);font-size:16px;font-weight:500;}
     .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:20px;padding:8px 24px;max-width:1440px;margin:0 auto;}
     .card{border-radius:12px;overflow:hidden;transition:transform .2s,box-shadow .2s;animation:fadeUp .4s ease both;position:relative;border-width:1px;border-style:solid;}
@@ -742,7 +750,30 @@ function App() {
   const [confirmClear, setConfirmClear] = useState(false);
   const [saveModalJson, setSaveModalJson] = useState(null);
   const [dragId, setDragId] = useState(null);
+  const [zoom, setZoom] = useState(100);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const fileInputRef = useRef(null);
+
+  // Keep fullscreen state in sync with browser Esc key etc.
+  useEffect(() => {
+    function onFsChange() {
+      setIsFullscreen(!!document.fullscreenElement);
+    }
+    document.addEventListener('fullscreenchange', onFsChange);
+    return () => document.removeEventListener('fullscreenchange', onFsChange);
+  }, []);
+
+  function handleZoomIn()    { setZoom(z => Math.min(z + 10, 150)); }
+  function handleZoomOut()   { setZoom(z => Math.max(z - 10, 60));  }
+  function handleZoomReset() { setZoom(100); }
+
+  function handleFullscreen() {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(()=>{});
+    } else {
+      document.exitFullscreen().catch(()=>{});
+    }
+  }
 
   useEffect(() => { saveToStorage(shows); }, [shows]);
 
@@ -853,7 +884,7 @@ function App() {
   const awaitingCount = showsWithTab.filter(s=>s.tab==='awaiting').length;
 
   return (
-    <div className="app">
+    <div className="app" style={{zoom:`${zoom}%`}}>
       <div className="header">
         <h1>TV-<span>WATCH</span>LIST</h1>
         <div className="header-sub">2025–2026 TV Season Tracker</div>
@@ -894,6 +925,18 @@ function App() {
           🗑️ Clear All
         </button>
         <input type="file" ref={fileInputRef} accept=".json" onChange={handleUploadData}/>
+      </div>
+
+      {/* ── Zoom & Fullscreen ── */}
+      <div className="view-toolbar">
+        <div className="zoom-group">
+          <button className="zoom-btn" onClick={handleZoomOut}  title="Zoom out">−</button>
+          <span   className="zoom-label" onClick={handleZoomReset} title="Reset to 100%">{zoom}%</span>
+          <button className="zoom-btn" onClick={handleZoomIn}   title="Zoom in">+</button>
+        </div>
+        <button className="fs-btn" onClick={handleFullscreen} title={isFullscreen ? 'Exit full screen' : 'Enter full screen'}>
+          {isFullscreen ? '⛶  Exit Full Screen' : '⛶  Full Screen'}
+        </button>
       </div>
 
       <div className="count-bar">

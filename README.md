@@ -2,8 +2,7 @@
 
 A beautiful, fully self-contained TV show tracker. Search from a built-in database of 65 shows, look up any show on the internet automatically, organize shows into two tabs, drag to reorder, and track next-season return dates — all in a single HTML file with no account, no API keys, and no installation required.
 
-🔗 **Live app:** [davidfliesen.github.io/tv-watchlist](https://davidfliesen.github.io/tv-watchlist)  
-📁 **Repository:** [github.com/DavidFliesen/tv-watchlist](https://github.com/DavidFliesen/tv-watchlist)
+🔗 **Live app:** <a href="https://davidfliesen.github.io/tv-watchlist" target="_blank">davidfliesen.github.io/tv-watchlist</a>
 
 -----
 
