@@ -76,6 +76,8 @@
     .zoom-label:hover{color:var(--accent);}
     .fs-btn{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.05);border:1px solid var(--border);color:var(--muted);font-family:'Inter',sans-serif;font-size:13px;font-weight:600;padding:6px 14px;border-radius:8px;cursor:pointer;transition:all .15s;white-space:nowrap;}
     .fs-btn:hover{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.25);color:var(--text);}
+    .app.css-fullscreen{position:fixed;inset:0;z-index:9998;overflow-y:auto;zoom:1!important;}
+    .app.css-fullscreen .toolbar{position:sticky;top:0;z-index:10;}
     .count-bar{padding:12px 24px;color:var(--muted);font-size:16px;font-weight:500;}
     .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:20px;padding:8px 24px;max-width:1440px;margin:0 auto;}
     .card{border-radius:12px;overflow:hidden;transition:transform .2s,box-shadow .2s;animation:fadeUp .4s ease both;position:relative;border-width:1px;border-style:solid;}
@@ -177,9 +179,12 @@
     .tab-btn.active .tab-count{background:rgba(232,184,75,.18);color:var(--accent);}
 
     /* ── DRAG & DROP ── */
-    .card{cursor:grab;}
-    .card.dragging{opacity:0.35;cursor:grabbing;transform:scale(0.97);}
+    .card{cursor:default;}
+    .card.dragging{opacity:0.30;transform:scale(0.97);}
     .card.drag-over{outline:2px dashed var(--accent);outline-offset:3px;}
+    .drag-handle{display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:7px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.4);font-size:18px;cursor:grab;letter-spacing:1px;flex-shrink:0;user-select:none;-webkit-user-select:none;touch-action:none;transition:background .15s,color .15s;}
+    .drag-handle:hover{background:rgba(255,255,255,.13);color:rgba(255,255,255,.75);}
+    .drag-handle:active{cursor:grabbing;}
 
     /* ── MOVE TAB BUTTON on card ── */
     .move-tab-btn{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.55);font-family:'Inter',sans-serif;font-size:12px;font-weight:600;padding:4px 11px;border-radius:6px;cursor:pointer;transition:all .15s;white-space:nowrap;}
@@ -351,11 +356,62 @@ function saveToStorage(shows) {
 
 const DEFAULT_SHOWS = [];
 
-function ShowCard({show, colorIdx, onEdit, onDelete, index}) {
+function ShowCard({show, colorIdx, onEdit, onDelete, onMoveTab, onDragStart, onDragOver, onDrop, dragId, index}) {
   const col = CARD_COLORS[colorIdx % CARD_COLORS.length];
   const ss = getStatusStyle(show.status);
+  const isDragging = dragId === show.id;
+  const isWatching = (show.tab || 'watching') === 'watching';
+  const handleRef = useRef(null);
+  const lastOverId = useRef(null);
+
+  // Non-passive touch events on the drag handle for iPad/mobile
+  useEffect(() => {
+    const handle = handleRef.current;
+    if (!handle) return;
+    function onTouchStart(e) {
+      e.stopPropagation();
+      lastOverId.current = null;
+      onDragStart(show.id);
+    }
+    function onTouchMove(e) {
+      e.preventDefault();
+      const touch = e.touches[0];
+      const el = document.elementFromPoint(touch.clientX, touch.clientY);
+      const card = el && el.closest('[data-card-id]');
+      if (card) {
+        const tid = parseInt(card.getAttribute('data-card-id'));
+        if (!isNaN(tid) && tid !== show.id) {
+          lastOverId.current = tid;
+          onDragOver(tid);
+        }
+      }
+    }
+    function onTouchEnd(e) {
+      e.preventDefault();
+      onDrop(lastOverId.current);
+      lastOverId.current = null;
+    }
+    handle.addEventListener('touchstart',  onTouchStart, {passive:false});
+    handle.addEventListener('touchmove',   onTouchMove,  {passive:false});
+    handle.addEventListener('touchend',    onTouchEnd,   {passive:false});
+    return () => {
+      handle.removeEventListener('touchstart',  onTouchStart);
+      handle.removeEventListener('touchmove',   onTouchMove);
+      handle.removeEventListener('touchend',    onTouchEnd);
+    };
+  }, [show.id, onDragStart, onDragOver, onDrop]);
+
   return (
-    <div className="card" style={{background:col.bg, borderColor:col.border, animationDelay:`${index*0.035}s`}}>
+    <div
+      className={`card${isDragging ? ' dragging' : ''}`}
+      data-card-id={show.id}
+      style={{background:col.bg, borderColor:col.border, animationDelay:`${index*0.035}s`}}
+      draggable
+      onDragStart={e => { e.dataTransfer.effectAllowed='move'; onDragStart(show.id); }}
+      onDragOver={e => { e.preventDefault(); onDragOver(show.id); }}
+      onDrop={e => { e.preventDefault(); onDrop(show.id); }}
+      onDragEnd={() => onDrop(null)}
+    >
       <div className="card-inner">
         <div className="card-top">
           <div className="card-top-left">
@@ -363,8 +419,14 @@ function ShowCard({show, colorIdx, onEdit, onDelete, index}) {
             {show.network && <span className="network-pill" style={{color:col.accent,borderColor:col.border,background:"rgba(0,0,0,0.3)"}}>{show.network}</span>}
           </div>
           <div className="card-actions">
+            <button
+              className={`move-tab-btn ${isWatching ? 'to-awaiting' : 'to-watching'}`}
+              title={isWatching ? 'Move to Awaiting' : 'Move to Watching'}
+              onClick={() => onMoveTab(show.id)}
+            >{isWatching ? '→ Awaiting' : '→ Watching'}</button>
             <button className="icon-btn" title="Edit" onClick={() => onEdit(show)}>✏️</button>
             <button className="icon-btn" title="Delete" onClick={() => onDelete(show)}>🗑️</button>
+            <div ref={handleRef} className="drag-handle" title="Drag to reorder">⠿</div>
           </div>
         </div>
         {show.nextSeason && (
@@ -510,9 +572,13 @@ function ShowForm({initial, onSave, onClose, existingShows=[]}) {
   const [autoFilledSource, setAutoFilledSource] = useState('');
   const [form, setForm] = useState(
     isEdit
-      ? {...initial, rec1:initial.recommendations?.[0]||"", rec2:initial.recommendations?.[1]||"", rec3:initial.recommendations?.[2]||""}
+      ? {...initial, tab:initial.tab||'watching', rec1:initial.recommendations?.[0]||"", rec2:initial.recommendations?.[1]||"", rec3:initial.recommendations?.[2]||""}
       : {...EMPTY_FORM}
   );
+  // Position within tab (edit mode only)
+  const initTabShows = isEdit ? (existingShows||[]).filter(s=>(s.tab||'watching')===(initial?.tab||'watching')) : [];
+  const initPos = isEdit ? (initTabShows.findIndex(s=>s.id===initial?.id)+1 || 1) : 1;
+  const [editPosition, setEditPosition] = useState(initPos);
   const inputRef = useRef(null);
   const netTimerRef = useRef(null);
 
@@ -572,7 +638,7 @@ function ShowForm({initial, onSave, onClose, existingShows=[]}) {
     if (!form.name.trim()) return;
     const cleanForm = {...form};
     delete cleanForm._fromInternet;
-    onSave({...cleanForm, name:cleanForm.name.trim(), recommendations:[cleanForm.rec1,cleanForm.rec2,cleanForm.rec3].filter(Boolean)});
+    onSave({...cleanForm, name:cleanForm.name.trim(), recommendations:[cleanForm.rec1,cleanForm.rec2,cleanForm.rec3].filter(Boolean), _targetPosition: isEdit ? editPosition : undefined});
   }
 
   const hasAnyResults = localResults.length > 0 || netResults.length > 0;
@@ -660,6 +726,30 @@ function ShowForm({initial, onSave, onClose, existingShows=[]}) {
                   {autoFilledSource==='internet' ? '🌐 Details found online — review & fill in Next Season below' : '✓ Details filled from database — edit anything below'}
                 </div>
               )}
+              {isEdit && (() => {
+                const selTab = form.tab || 'watching';
+                const countInTab = (existingShows||[]).filter(s=>(s.tab||'watching')===selTab).length;
+                const maxPos = Math.max(countInTab, 1);
+                return (
+                  <div className="form-row" style={{background:'rgba(232,184,75,.06)',border:'1px solid rgba(232,184,75,.2)',borderRadius:8,padding:'12px 14px',gap:14}}>
+                    <div className="form-group">
+                      <label>Tab</label>
+                      <select value={selTab} onChange={e=>{set('tab',e.target.value);setEditPosition(1);}}>
+                        <option value="watching">Now Watching</option>
+                        <option value="awaiting">Awaiting</option>
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label>Position in list</label>
+                      <select value={Math.min(editPosition,maxPos)} onChange={e=>setEditPosition(parseInt(e.target.value))}>
+                        {Array.from({length:maxPos},(_,i)=>(
+                          <option key={i+1} value={i+1}>{i+1}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                );
+              })()}
               <div className="form-group full">
                 <label>Show Title *</label>
                 <input value={form.name} onChange={e => set("name",e.target.value)} placeholder="Show title"/>
@@ -757,21 +847,40 @@ function App() {
   // Keep fullscreen state in sync with browser Esc key etc.
   useEffect(() => {
     function onFsChange() {
-      setIsFullscreen(!!document.fullscreenElement);
+      const fs = !!(document.fullscreenElement || document.webkitFullscreenElement);
+      setIsFullscreen(fs);
+      if (!fs) setCssFullscreen(false); // sync if user presses Esc
     }
     document.addEventListener('fullscreenchange', onFsChange);
-    return () => document.removeEventListener('fullscreenchange', onFsChange);
+    document.addEventListener('webkitfullscreenchange', onFsChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', onFsChange);
+      document.removeEventListener('webkitfullscreenchange', onFsChange);
+    };
   }, []);
 
   function handleZoomIn()    { setZoom(z => Math.min(z + 10, 150)); }
   function handleZoomOut()   { setZoom(z => Math.max(z - 10, 60));  }
   function handleZoomReset() { setZoom(100); }
 
+  const [cssFullscreen, setCssFullscreen] = useState(false);
+
   function handleFullscreen() {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().catch(()=>{});
+    // Try real Fullscreen API first (desktop Chrome/Firefox/Safari 16.4+)
+    const el = document.documentElement;
+    const canFS = !!(el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen);
+    if (canFS && !cssFullscreen) {
+      const req = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen;
+      req.call(el).then(()=>{}).catch(()=>{
+        // API available but blocked — fall through to CSS mode
+        setCssFullscreen(true);
+      });
+    } else if (document.fullscreenElement || document.webkitFullscreenElement) {
+      const exit = document.exitFullscreen || document.webkitExitFullscreen;
+      exit.call(document).catch(()=>{});
     } else {
-      document.exitFullscreen().catch(()=>{});
+      // CSS fallback for Chrome on iOS, older Safari, etc.
+      setCssFullscreen(p=>!p);
     }
   }
 
@@ -784,7 +893,33 @@ function App() {
     setShowForm(false);
     showToast(`✓ "${f.name}" added to ${activeTab==='watching'?'Watching':'Awaiting'}`);
   }
-  function handleEdit(f) { setShows(p=>p.map(s=>s.id===editShow.id?{...f,id:s.id,tab:s.tab||'watching'}:s)); setEditShow(null); showToast(`✓ "${f.name}" updated`); }
+  function handleEdit(f) {
+    const targetTab = f.tab || 'watching';
+    const targetPos = (f._targetPosition || 1) - 1; // 0-based
+    const cleanF = {...f};
+    delete cleanF._targetPosition;
+    setShows(prev => {
+      // Remove the show being edited
+      const rest = prev.filter(s => s.id !== editShow.id);
+      const updatedShow = {...cleanF, id: editShow.id};
+      // Get shows in target tab (from rest, in their current order)
+      const targetTabShows = rest.filter(s => (s.tab||'watching') === targetTab);
+      // Insert at desired position
+      const pos = Math.max(0, Math.min(targetPos, targetTabShows.length));
+      targetTabShows.splice(pos, 0, updatedShow);
+      // Rebuild: walk rest, replacing target-tab slots with reordered list
+      let tIdx = 0;
+      const result = rest.map(s => {
+        if ((s.tab||'watching') === targetTab) return targetTabShows[tIdx++];
+        return s;
+      });
+      // Append any remaining (e.g. show moved into this tab from another)
+      while (tIdx < targetTabShows.length) result.push(targetTabShows[tIdx++]);
+      return result;
+    });
+    setEditShow(null);
+    showToast(`✓ "${f.name}" updated`);
+  }
   function handleDelete(){ const n=deleteShow.name; setShows(p=>p.filter(s=>s.id!==deleteShow.id)); setDeleteShow(null); showToast(`"${n}" removed`); }
 
   function handleMoveTab(id) {
@@ -798,26 +933,29 @@ function App() {
 
   // ── Drag & drop (mouse + touch) ──────────────────────────────────────────
   const dragOverId = useRef(null);
+  const dragIdRef  = useRef(null); // mirror of dragId for closures
 
-  function handleDragStart(e, id, isTouch=false) {
+  function handleDragStart(id) {
     setDragId(id);
-    if (!isTouch && e.dataTransfer) {
-      e.dataTransfer.effectAllowed = 'move';
-    }
+    dragIdRef.current = id;
   }
 
-  function handleDragOver(id, isTouch=false) {
+  function handleDragOver(id) {
     dragOverId.current = id;
   }
 
-  function handleDrop(targetId, isTouch=false) {
-    const fromId = dragId;
+  // targetId: the card dropped onto (HTML5), or last card hovered (touch), or null to cancel
+  function handleDrop(targetId) {
+    const fromId = dragIdRef.current;
     setDragId(null);
-    if (!fromId || fromId === targetId) return;
+    dragIdRef.current = null;
+    const toId = targetId ?? dragOverId.current;
+    dragOverId.current = null;
+    if (!fromId || !toId || fromId === toId) return;
     setShows(prev => {
       const arr = [...prev];
       const fromIdx = arr.findIndex(s=>s.id===fromId);
-      const toIdx   = arr.findIndex(s=>s.id===targetId);
+      const toIdx   = arr.findIndex(s=>s.id===toId);
       if (fromIdx<0||toIdx<0) return prev;
       const [moved] = arr.splice(fromIdx,1);
       arr.splice(toIdx,0,moved);
@@ -884,7 +1022,7 @@ function App() {
   const awaitingCount = showsWithTab.filter(s=>s.tab==='awaiting').length;
 
   return (
-    <div className="app" style={{zoom:`${zoom}%`}}>
+    <div className={`app${cssFullscreen?" css-fullscreen":""}`} style={{zoom:`${zoom}%`}}>
       <div className="header">
         <h1>TV-<span>WATCH</span>LIST</h1>
         <div className="header-sub">2025–2026 TV Season Tracker</div>
@@ -934,8 +1072,8 @@ function App() {
           <span   className="zoom-label" onClick={handleZoomReset} title="Reset to 100%">{zoom}%</span>
           <button className="zoom-btn" onClick={handleZoomIn}   title="Zoom in">+</button>
         </div>
-        <button className="fs-btn" onClick={handleFullscreen} title={isFullscreen ? 'Exit full screen' : 'Enter full screen'}>
-          {isFullscreen ? '⛶  Exit Full Screen' : '⛶  Full Screen'}
+        <button className="fs-btn" onClick={handleFullscreen} title={(isFullscreen||cssFullscreen) ? 'Exit full screen' : 'Enter full screen'}>
+          {(isFullscreen||cssFullscreen) ? '⛶  Exit Full Screen' : '⛶  Full Screen'}
         </button>
       </div>
 
@@ -961,7 +1099,7 @@ function App() {
               onDragStart={handleDragStart}
               onDragOver={handleDragOver}
               onDrop={handleDrop}
-              isDragging={dragId===show.id}
+              dragId={dragId}
             />
           ))
         }
@@ -970,7 +1108,7 @@ function App() {
       <div className="footer-note">DATABASE OF {SHOW_DB.length} SHOWS · SCHEDULE CURRENT AS OF 2026 · DATES SUBJECT TO CHANGE</div>
 
       {showForm   && <ShowForm onSave={handleAdd}  onClose={()=>setShowForm(false)} existingShows={shows}/>}
-      {editShow   && <ShowForm initial={editShow}  onSave={handleEdit} onClose={()=>setEditShow(null)}/>}
+      {editShow   && <ShowForm initial={editShow} existingShows={shows} onSave={handleEdit} onClose={()=>setEditShow(null)}/>}
       {deleteShow && <ConfirmDelete show={deleteShow} onConfirm={handleDelete} onCancel={()=>setDeleteShow(null)}/>}
 
       {confirmClear && (
