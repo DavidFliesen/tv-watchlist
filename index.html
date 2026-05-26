@@ -193,12 +193,20 @@
     .move-tab-btn.to-watching{border-color:rgba(74,222,128,.35);color:#4ade80;}
     .move-tab-btn.to-watching:hover{background:rgba(74,222,128,.12);border-color:#4ade80;}
 
-    /* ── iOS save modal ── */
-    .save-modal{background:#1a1a28;border:1px solid #3a3a55;border-radius:14px;width:100%;max-width:560px;max-height:85vh;overflow-y:auto;animation:slideUp .2s ease;}
-    .save-modal-header{padding:20px 24px 14px;border-bottom:1px solid #2e2e42;display:flex;justify-content:space-between;align-items:center;}
-    .save-modal-title{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:3px;color:var(--accent);}
-    .save-modal pre{background:#0f0f1a;border:1px solid #2e2e42;border-radius:8px;padding:16px;font-size:12px;color:#9090b0;overflow-x:auto;white-space:pre-wrap;word-break:break-all;max-height:300px;overflow-y:auto;margin:0;}
-    .save-instructions{color:var(--muted);font-size:14px;line-height:1.7;padding:16px 24px 0;}
+    /* ── Data modal (save & upload) ── */
+    .data-modal{background:#1a1a28;border:1px solid #3a3a55;border-radius:14px;width:100%;max-width:580px;max-height:90vh;overflow-y:auto;animation:slideUp .2s ease;}
+    .data-modal-header{padding:20px 24px 16px;border-bottom:1px solid #2e2e42;display:flex;justify-content:space-between;align-items:center;}
+    .data-modal-title{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:3px;color:var(--accent);}
+    .data-modal pre{background:#0f0f1a;border:1px solid #2e2e42;border-radius:8px;padding:14px;font-size:12px;color:#9090b0;white-space:pre-wrap;word-break:break-all;max-height:220px;overflow-y:auto;margin:0;}
+    .data-modal-instructions{color:var(--muted);font-size:14px;line-height:1.75;padding:14px 24px 0;}
+    .data-modal-body{padding:16px 24px 22px;display:flex;flex-direction:column;gap:12px;}
+    .data-option-row{display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid #2e2e42;}
+    .data-option-row:last-child{border-bottom:none;}
+    .data-option-label{font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);min-width:110px;}
+    .data-paste-area{width:100%;min-height:120px;background:#0f0f1a;border:1px solid #3a3a55;color:var(--text);font-family:'Inter',sans-serif;font-size:13px;padding:12px 14px;border-radius:8px;resize:vertical;outline:none;transition:border-color .15s;}
+    .data-paste-area:focus{border-color:var(--accent);}
+    .data-paste-area::placeholder{color:#4a4a6a;}
+    .data-btn-row{display:flex;gap:10px;flex-wrap:wrap;}
     .recs-input-group{display:flex;flex-direction:column;gap:10px;}
     @media(max-width:600px){
       .grid{grid-template-columns:1fr;padding:8px 14px;}
@@ -838,7 +846,8 @@ function App() {
   const [deleteShow, setDeleteShow] = useState(null);
   const [toast, setToast] = useState("");
   const [confirmClear, setConfirmClear] = useState(false);
-  const [saveModalJson, setSaveModalJson] = useState(null);
+  const [dataModal, setDataModal] = useState(null); // {mode:'save'|'upload'}
+  const [pasteText, setPasteText] = useState('');
   const [dragId, setDragId] = useState(null);
   const [zoom, setZoom] = useState(100);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -963,26 +972,43 @@ function App() {
     });
   }
 
-  // ── iOS-safe save ────────────────────────────────────────────────────────
-  function handleSaveData() {
+  // ── Save helpers ─────────────────────────────────────────────────────────
+  function doDownloadFile() {
     const json = JSON.stringify(shows, null, 2);
-    // Detect iOS/iPadOS
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-                  (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1);
-    if (isIOS) {
-      // iOS can't trigger file downloads — show the JSON in a modal to copy or share
-      setSaveModalJson(json);
-    } else {
-      const blob = new Blob([json], {type:'application/json'});
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `tv-watchlist-${new Date().toISOString().slice(0,10)}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      setTimeout(()=>URL.revokeObjectURL(url), 1000);
-      showToast('✓ Watchlist saved to file');
+    const blob = new Blob([json], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `tv-watchlist-${new Date().toISOString().slice(0,10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(url), 1000);
+    showToast('✓ Watchlist saved to file');
+  }
+
+  function doCopyToClipboard() {
+    const json = JSON.stringify(shows, null, 2);
+    navigator.clipboard.writeText(json)
+      .then(()=>showToast('✓ Copied to clipboard!'))
+      .catch(()=>{ setDataModal({mode:'save'}); showToast('Use the text area to copy manually'); });
+  }
+
+  function handleSaveData() {
+    setDataModal({mode:'save'});
+  }
+
+  // ── Upload helpers ────────────────────────────────────────────────────────
+  function applyJsonText(text) {
+    try {
+      const parsed = JSON.parse(text.trim());
+      if (!Array.isArray(parsed)) throw new Error('Not a valid watchlist file');
+      setShows(parsed);
+      setDataModal(null);
+      setPasteText('');
+      showToast(`✓ Loaded ${parsed.length} shows`);
+    } catch(err) {
+      showToast('⚠️ Invalid data — check your text and try again');
     }
   }
 
@@ -991,14 +1017,7 @@ function App() {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = (ev) => {
-      try {
-        const parsed = JSON.parse(ev.target.result);
-        if (!Array.isArray(parsed)) throw new Error('Not a valid watchlist file');
-        setShows(parsed);
-        showToast(`✓ Loaded ${parsed.length} shows from file`);
-      } catch(err) {
-        showToast('⚠️ Invalid file — could not load');
-      }
+      applyJsonText(ev.target.result);
       e.target.value = '';
     };
     reader.readAsText(file);
@@ -1053,10 +1072,10 @@ function App() {
       </div>
 
       <div className="data-toolbar">
-        <button className="data-btn data-btn-save" onClick={handleSaveData} title="Download your watchlist as a JSON file">
+        <button className="data-btn data-btn-save" onClick={handleSaveData} title="Save your watchlist">
           💾 Save Data
         </button>
-        <button className="data-btn data-btn-upload" onClick={()=>fileInputRef.current.click()} title="Load a previously saved watchlist JSON file">
+        <button className="data-btn data-btn-upload" onClick={()=>{setPasteText('');setDataModal({mode:'upload'});}} title="Load a saved watchlist">
           📂 Upload Data
         </button>
         <button className="data-btn data-btn-clear" onClick={()=>setConfirmClear(true)} title="Remove all shows from your watchlist">
@@ -1126,30 +1145,97 @@ function App() {
         </div>
       )}
 
-      {/* ── iOS Save Modal ── */}
-      {saveModalJson && (
-        <div className="overlay" onClick={e=>e.target===e.currentTarget&&setSaveModalJson(null)}>
-          <div className="save-modal">
-            <div className="save-modal-header">
-              <div className="save-modal-title">Save Your Data</div>
-              <button className="modal-close" onClick={()=>setSaveModalJson(null)}>✕</button>
+      {/* ── Unified Save / Upload Modal ── */}
+      {dataModal && (
+        <div className="overlay" onClick={e=>e.target===e.currentTarget&&setDataModal(null)}>
+          <div className="data-modal">
+            <div className="data-modal-header">
+              <div className="data-modal-title">{dataModal.mode==='save' ? 'Save Your Data' : 'Upload Data'}</div>
+              <button className="modal-close" onClick={()=>setDataModal(null)}>✕</button>
             </div>
-            <div className="save-instructions">
-              <strong style={{color:'var(--text)'}}>On iPad/iPhone:</strong> Tap and hold the text below → Select All → Copy.
-              Then open the <strong style={{color:'var(--accent)'}}>Notes</strong> app (or any app), paste, and save it there.
-              To restore later, paste the text into a <code style={{background:'#1a1a28',padding:'2px 6px',borderRadius:4}}>.json</code> file and use <strong style={{color:'#38bdf8'}}>Upload Data</strong>.
-            </div>
-            <div style={{padding:'12px 24px 20px'}}>
-              <pre>{saveModalJson}</pre>
-              <button
-                className="btn-save" style={{marginTop:14,width:'100%',borderRadius:8,padding:'12px',fontSize:'16px'}}
-                onClick={()=>{
-                  try { navigator.clipboard.writeText(saveModalJson).then(()=>showToast('✓ Copied to clipboard!')); }
-                  catch(e){ showToast('Select all text above and copy manually'); }
-                  setSaveModalJson(null);
-                }}
-              >Copy to Clipboard</button>
-            </div>
+
+            {dataModal.mode === 'save' && (
+              <div className="data-modal-body">
+                <p className="data-modal-instructions">
+                  Choose how to save your watchlist. Both options save everything — tab assignments, card order, and all show data.
+                </p>
+
+                {/* Option 1: Download file */}
+                <div style={{background:'#0f0f1a',border:'1px solid #2e2e42',borderRadius:10,padding:'16px 18px'}}>
+                  <div style={{fontWeight:700,fontSize:15,color:'var(--text)',marginBottom:6}}>📁 Download as File</div>
+                  <div style={{color:'var(--muted)',fontSize:13,lineHeight:1.65,marginBottom:12}}>
+                    Saves a <code style={{background:'#1a1a28',padding:'1px 5px',borderRadius:4}}>.json</code> file to your device.
+                    Best for desktop browsers. On iPad/iPhone the browser may block downloads — use Copy instead.
+                  </div>
+                  <button className="btn-save" style={{borderRadius:8,padding:'10px 28px',fontSize:15}}
+                    onClick={()=>{ doDownloadFile(); setDataModal(null); }}>
+                    Download File
+                  </button>
+                </div>
+
+                {/* Option 2: Copy to clipboard */}
+                <div style={{background:'#0f0f1a',border:'1px solid #2e2e42',borderRadius:10,padding:'16px 18px'}}>
+                  <div style={{fontWeight:700,fontSize:15,color:'var(--text)',marginBottom:6}}>📋 Copy to Clipboard</div>
+                  <div style={{color:'var(--muted)',fontSize:13,lineHeight:1.65,marginBottom:12}}>
+                    Copies your watchlist as text. Paste it into Notes, Messages, or any app to keep a backup.
+                    Use <strong style={{color:'#38bdf8'}}>Paste Text</strong> in Upload Data to restore it later.
+                  </div>
+                  <div style={{display:'flex',gap:10,flexWrap:'wrap',alignItems:'flex-start'}}>
+                    <button className="btn-save" style={{borderRadius:8,padding:'10px 28px',fontSize:15,background:'linear-gradient(135deg,#38bdf8,#818cf8)'}}
+                      onClick={doCopyToClipboard}>
+                      Copy to Clipboard
+                    </button>
+                  </div>
+                  <div style={{marginTop:12}}>
+                    <div style={{color:'var(--muted)',fontSize:12,marginBottom:6}}>Or select all and copy manually:</div>
+                    <pre>{JSON.stringify(shows, null, 2)}</pre>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {dataModal.mode === 'upload' && (
+              <div className="data-modal-body">
+                <p className="data-modal-instructions">
+                  Choose how to load your saved watchlist. This will replace your current list.
+                </p>
+
+                {/* Option 1: Upload file */}
+                <div style={{background:'#0f0f1a',border:'1px solid #2e2e42',borderRadius:10,padding:'16px 18px'}}>
+                  <div style={{fontWeight:700,fontSize:15,color:'var(--text)',marginBottom:6}}>📁 Upload from File</div>
+                  <div style={{color:'var(--muted)',fontSize:13,lineHeight:1.65,marginBottom:12}}>
+                    Select a <code style={{background:'#1a1a28',padding:'1px 5px',borderRadius:4}}>.json</code> file you previously downloaded.
+                    Works on desktop; on iPad/iPhone use Paste Text instead.
+                  </div>
+                  <button className="btn-save" style={{borderRadius:8,padding:'10px 28px',fontSize:15}}
+                    onClick={()=>fileInputRef.current.click()}>
+                    Choose File
+                  </button>
+                </div>
+
+                {/* Option 2: Paste text */}
+                <div style={{background:'#0f0f1a',border:'1px solid #2e2e42',borderRadius:10,padding:'16px 18px'}}>
+                  <div style={{fontWeight:700,fontSize:15,color:'var(--text)',marginBottom:6}}>📋 Paste from Clipboard</div>
+                  <div style={{color:'var(--muted)',fontSize:13,lineHeight:1.65,marginBottom:12}}>
+                    Paste the text you copied from <strong style={{color:'#e8b84b'}}>Save Data → Copy to Clipboard</strong> or from your Notes app.
+                  </div>
+                  <textarea
+                    className="data-paste-area"
+                    placeholder="Paste your watchlist JSON text here…"
+                    value={pasteText}
+                    onChange={e=>setPasteText(e.target.value)}
+                  />
+                  <button
+                    className="btn-save"
+                    style={{borderRadius:8,padding:'10px 28px',fontSize:15,marginTop:10,opacity:pasteText.trim()?1:0.45}}
+                    disabled={!pasteText.trim()}
+                    onClick={()=>applyJsonText(pasteText)}>
+                    Load from Pasted Text
+                  </button>
+                </div>
+              </div>
+            )}
+
           </div>
         </div>
       )}
