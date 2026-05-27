@@ -104,9 +104,10 @@
     .recs-list{display:flex;flex-wrap:wrap;gap:6px;}
     .rec-tag{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.75);font-size:15px;font-weight:500;padding:4px 12px;border-radius:6px;transition:all .15s;}
     .rec-tag:hover{background:rgba(255,255,255,.13);color:#fff;}
-    .imdb-link{display:inline-flex;align-items:center;gap:6px;background:#f5c518;color:#000;font-family:'Inter',sans-serif;font-size:13px;font-weight:800;padding:5px 13px;border-radius:6px;text-decoration:none;letter-spacing:.5px;transition:opacity .15s;margin-top:12px;}
-    .imdb-link:hover{opacity:.85;}
-    .imdb-link svg{flex-shrink:0;}
+    .imdb-btn{display:inline-flex;align-items:center;gap:6px;background:#f5c518;color:#000;font-family:'Inter',sans-serif;font-size:13px;font-weight:800;padding:5px 13px;border-radius:6px;border:none;cursor:pointer;letter-spacing:.5px;transition:opacity .15s,background .15s;margin-top:12px;}
+    .imdb-btn:hover{opacity:.85;}
+    .imdb-btn:disabled{background:#8a7a10;color:#333;cursor:wait;opacity:.7;}
+    .imdb-btn svg{flex-shrink:0;}
     .overlay{position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px;animation:fadeIn .15s ease;}
     @keyframes fadeIn{from{opacity:0}to{opacity:1}}
     .modal{background:#1a1a28;border:1px solid #3a3a55;border-radius:14px;width:100%;max-width:560px;max-height:92vh;overflow-y:auto;animation:slideUp .2s ease;}
@@ -356,19 +357,7 @@ const EMPTY_FORM = {name:"",network:"",nextSeason:"",airDay:"",airTime:"",status
 function loadFromStorage() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      const stored = JSON.parse(raw);
-      // Merge imdbId from SHOW_DB into stored shows that are missing it
-      const dbMap = {};
-      SHOW_DB.forEach(s => { if (s.imdbId) dbMap[s.name.toLowerCase()] = s.imdbId; });
-      return stored.map(s => {
-        if (!s.imdbId) {
-          const id = dbMap[s.name.toLowerCase()];
-          if (id) return { ...s, imdbId: id };
-        }
-        return s;
-      });
-    }
+    if (raw) return JSON.parse(raw);
   } catch(e) {}
   return null;
 }
@@ -379,7 +368,32 @@ function saveToStorage(shows) {
 
 const DEFAULT_SHOWS = [];
 
-function ShowCard({show, colorIdx, onEdit, onDelete, onMoveTab, onDragStart, onDragOver, onDrop, dragId, index}) {
+// ── IMDb Button component ────────────────────────────────────────────────────
+function ImdbButton({show, onImdbIdVerified}) {
+  const [loading, setLoading] = useState(false);
+
+  async function handleClick() {
+    setLoading(true);
+    await openImdb(show, onImdbIdVerified);
+    setLoading(false);
+  }
+
+  return (
+    <button
+      className="imdb-btn"
+      onClick={handleClick}
+      disabled={loading}
+      title={`View ${show.name} on IMDb`}
+    >
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M14.31 9.588v.005c-.077-.048-1.012-.062-1.012-.062v4.932s.917-.013 1.012-.052l.001.005c.487-.178.55-.793.55-2.416 0-1.622-.076-2.234-.55-2.412zM4 4v16h16V4H4zm4.557 11.858H7.07V8.142h1.487v7.716zm4.211.088c-.22.091-1.946.178-2.637.092v-7.9s1.94-.072 2.637.083c1.505.337 1.587 1.808 1.587 3.785 0 2.283-.16 3.639-1.587 3.94zM18 13.215c0 .784-.055 1.334-.214 1.659-.32.648-1.144.727-1.773.536a.823.823 0 01-.32-.23v.678h-1.441V8.142h1.441v2.352a.823.823 0 01.32-.227c.63-.192 1.453-.114 1.773.534.16.325.214.875.214 1.658v.756z"/>
+      </svg>
+      {loading ? 'Looking up…' : 'IMDb'}
+    </button>
+  );
+}
+
+function ShowCard({show, colorIdx, onEdit, onDelete, onMoveTab, onDragStart, onDragOver, onDrop, dragId, onImdbIdVerified, index}) {
   const col = CARD_COLORS[colorIdx % CARD_COLORS.length];
   const ss = getStatusStyle(show.status);
   const isDragging = dragId === show.id;
@@ -481,27 +495,37 @@ function ShowCard({show, colorIdx, onEdit, onDelete, onMoveTab, onDragStart, onD
             </div>
           </div>
         )}
-        <a
-          href={imdbUrl(show.name, show.imdbId)}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="imdb-link"
-          title={`View ${show.name} on IMDb`}
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M14.31 9.588v.005c-.077-.048-1.012-.062-1.012-.062v4.932s.917-.013 1.012-.052l.001.005c.487-.178.55-.793.55-2.416 0-1.622-.076-2.234-.55-2.412zM4 4v16h16V4H4zm4.557 11.858H7.07V8.142h1.487v7.716zm4.211.088c-.22.091-1.946.178-2.637.092v-7.9s1.94-.072 2.637.083c1.505.337 1.587 1.808 1.587 3.785 0 2.283-.16 3.639-1.587 3.94zM18 13.215c0 .784-.055 1.334-.214 1.659-.32.648-1.144.727-1.773.536a.823.823 0 01-.32-.23v.678h-1.441V8.142h1.441v2.352a.823.823 0 01.32-.227c.63-.192 1.453-.114 1.773.534.16.325.214.875.214 1.658v.756z"/>
-          </svg>
-          IMDb
-        </a>
+        <ImdbButton show={show} onImdbIdVerified={onImdbIdVerified}/>
       </div>
     </div>
   );
 }
 
-// ── IMDb URL helper ──────────────────────────────────────────────────────────
-function imdbUrl(name, imdbId) {
-  if (imdbId) return `https://www.imdb.com/title/${imdbId}/`;
-  return `https://www.imdb.com/find/?q=${encodeURIComponent(name)}&s=tt&ttype=tv&ref_=fn_tv`;
+// ── IMDb lookup via TVmaze ────────────────────────────────────────────────────
+// Fetches the verified IMDb ID from TVmaze, caches it in the show record,
+// then navigates. Falls back to IMDb search if TVmaze has no ID.
+async function openImdb(show, onImdbIdVerified) {
+  // If we already have a verified ID, go directly
+  if (show.imdbVerified && show.imdbId) {
+    window.open(`https://www.imdb.com/title/${show.imdbId}/`, '_blank');
+    return;
+  }
+  // Query TVmaze for the real IMDb ID
+  try {
+    const res = await fetch(`https://api.tvmaze.com/singlesearch/shows?q=${encodeURIComponent(show.name)}`);
+    if (res.ok) {
+      const data = await res.json();
+      const tvmazeId = data?.externals?.imdb;
+      if (tvmazeId) {
+        // Cache the verified ID back into the show
+        onImdbIdVerified(show.id, tvmazeId);
+        window.open(`https://www.imdb.com/title/${tvmazeId}/`, '_blank');
+        return;
+      }
+    }
+  } catch(e) { /* fall through */ }
+  // Fallback: IMDb search
+  window.open(`https://www.imdb.com/find/?q=${encodeURIComponent(show.name)}&s=tt&ttype=tv`, '_blank');
 }
 
 // ── TVmaze internet search ──────────────────────────────────────────────────
@@ -979,6 +1003,10 @@ function App() {
   }
   function handleDelete(){ const n=deleteShow.name; setShows(p=>p.filter(s=>s.id!==deleteShow.id)); setDeleteShow(null); showToast(`"${n}" removed`); }
 
+  function handleImdbIdVerified(id, imdbId) {
+    setShows(p => p.map(s => s.id === id ? {...s, imdbId, imdbVerified: true} : s));
+  }
+
   function handleMoveTab(id) {
     setShows(p=>p.map(s=>{
       if (s.id!==id) return s;
@@ -1167,6 +1195,7 @@ function App() {
               onDragOver={handleDragOver}
               onDrop={handleDrop}
               dragId={dragId}
+              onImdbIdVerified={handleImdbIdVerified}
             />
           ))
         }
