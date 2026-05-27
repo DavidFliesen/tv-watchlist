@@ -104,6 +104,9 @@
     .recs-list{display:flex;flex-wrap:wrap;gap:6px;}
     .rec-tag{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.75);font-size:15px;font-weight:500;padding:4px 12px;border-radius:6px;transition:all .15s;}
     .rec-tag:hover{background:rgba(255,255,255,.13);color:#fff;}
+    .imdb-link{display:inline-flex;align-items:center;gap:6px;background:#f5c518;color:#000;font-family:'Inter',sans-serif;font-size:13px;font-weight:800;padding:5px 13px;border-radius:6px;text-decoration:none;letter-spacing:.5px;transition:opacity .15s;margin-top:12px;}
+    .imdb-link:hover{opacity:.85;}
+    .imdb-link svg{flex-shrink:0;}
     .overlay{position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px;animation:fadeIn .15s ease;}
     @keyframes fadeIn{from{opacity:0}to{opacity:1}}
     .modal{background:#1a1a28;border:1px solid #3a3a55;border-radius:14px;width:100%;max-width:560px;max-height:92vh;overflow-y:auto;animation:slideUp .2s ease;}
@@ -348,7 +351,7 @@ function fuzzySearch(query, limit=6) {
 }
 
 const STORAGE_KEY = "tv-watchlist-github-v1";
-const EMPTY_FORM = {name:"",network:"",nextSeason:"",airDay:"",airTime:"",status:"",summary:"",rec1:"",rec2:"",rec3:""};
+const EMPTY_FORM = {name:"",network:"",nextSeason:"",airDay:"",airTime:"",status:"",summary:"",rec1:"",rec2:"",rec3:"",imdbId:""};
 
 function loadFromStorage() {
   try {
@@ -466,9 +469,27 @@ function ShowCard({show, colorIdx, onEdit, onDelete, onMoveTab, onDragStart, onD
             </div>
           </div>
         )}
+        <a
+          href={imdbUrl(show.name, show.imdbId)}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="imdb-link"
+          title={`View ${show.name} on IMDb`}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M14.31 9.588v.005c-.077-.048-1.012-.062-1.012-.062v4.932s.917-.013 1.012-.052l.001.005c.487-.178.55-.793.55-2.416 0-1.622-.076-2.234-.55-2.412zM4 4v16h16V4H4zm4.557 11.858H7.07V8.142h1.487v7.716zm4.211.088c-.22.091-1.946.178-2.637.092v-7.9s1.94-.072 2.637.083c1.505.337 1.587 1.808 1.587 3.785 0 2.283-.16 3.639-1.587 3.94zM18 13.215c0 .784-.055 1.334-.214 1.659-.32.648-1.144.727-1.773.536a.823.823 0 01-.32-.23v.678h-1.441V8.142h1.441v2.352a.823.823 0 01.32-.227c.63-.192 1.453-.114 1.773.534.16.325.214.875.214 1.658v.756z"/>
+          </svg>
+          IMDb
+        </a>
       </div>
     </div>
   );
+}
+
+// ── IMDb URL helper ──────────────────────────────────────────────────────────
+function imdbUrl(name, imdbId) {
+  if (imdbId) return `https://www.imdb.com/title/${imdbId}/`;
+  return `https://www.imdb.com/find/?q=${encodeURIComponent(name)}&s=tt&ttype=tv&ref_=fn_tv`;
 }
 
 // ── TVmaze internet search ──────────────────────────────────────────────────
@@ -550,6 +571,7 @@ async function searchTVMaze(query) {
       else status = s.status || '';
       const genres = s.genres || [];
       const recommendations = getGenreRecs(genres, s.name || '');
+      const imdbId = s.externals?.imdb || '';
       return {
         name: s.name || '',
         network,
@@ -559,6 +581,7 @@ async function searchTVMaze(query) {
         nextSeason: status === 'Ended' ? 'Ended' : 'TBD',
         summary: summary.length > 300 ? summary.slice(0, 297) + '…' : summary,
         recommendations,
+        imdbId,
         _fromInternet: true,
       };
     });
@@ -624,7 +647,7 @@ function ShowForm({initial, onSave, onClose, existingShows=[]}) {
     const dupe = existingShows.find(s => s.name.toLowerCase() === show.name.toLowerCase());
     if (dupe) { setDupWarning(show.name); return; }
     setDupWarning('');
-    setForm({...show, rec1:show.recommendations?.[0]||"", rec2:show.recommendations?.[1]||"", rec3:show.recommendations?.[2]||""});
+    setForm({...show, rec1:show.recommendations?.[0]||"", rec2:show.recommendations?.[1]||"", rec3:show.recommendations?.[2]||"", imdbId:show.imdbId||""});
     setAutoFilled(true);
     setAutoFilledSource(show._fromInternet ? 'internet' : 'database');
     setView("form");
@@ -646,6 +669,11 @@ function ShowForm({initial, onSave, onClose, existingShows=[]}) {
     if (!form.name.trim()) return;
     const cleanForm = {...form};
     delete cleanForm._fromInternet;
+    // Normalise imdbId — extract just the tt ID if user pasted a full URL
+    let imdbId = (cleanForm.imdbId || '').trim();
+    const ttMatch = imdbId.match(/tt\d{7,}/);
+    if (ttMatch) imdbId = ttMatch[0];
+    cleanForm.imdbId = imdbId;
     onSave({...cleanForm, name:cleanForm.name.trim(), recommendations:[cleanForm.rec1,cleanForm.rec2,cleanForm.rec3].filter(Boolean), _targetPosition: isEdit ? editPosition : undefined});
   }
 
@@ -806,6 +834,14 @@ function ShowForm({initial, onSave, onClose, existingShows=[]}) {
                   <input value={form.rec2} onChange={e => set("rec2",e.target.value)} placeholder="Similar show 2"/>
                   <input value={form.rec3} onChange={e => set("rec3",e.target.value)} placeholder="Similar show 3"/>
                 </div>
+              </div>
+              <div className="form-group full">
+                <label>IMDb ID or URL <span style={{fontWeight:400,opacity:.6,letterSpacing:0,textTransform:'none',fontSize:11}}>(optional — leave blank to auto-search)</span></label>
+                <input
+                  value={form.imdbId||''}
+                  onChange={e => set('imdbId', e.target.value.trim())}
+                  placeholder="e.g.  tt0944947  or  https://www.imdb.com/title/tt0944947/"
+                />
               </div>
             </div>
             <div className="modal-footer">

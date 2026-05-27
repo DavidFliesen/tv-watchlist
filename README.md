@@ -1,6 +1,6 @@
 # 📺 TV-Watchlist — TV Schedule Tracker
 
-A beautiful, fully self-contained TV show tracker. Search from a built-in database of 65 shows, look up any show live on the internet, organize shows into two tabs, drag to reorder, and track next-season return dates — all in a single HTML file with no account, no API keys, and no installation required.
+A beautiful, fully self-contained TV show tracker. Search from a built-in database of 65 shows, look up any show live on the internet, organize shows into two tabs, drag to reorder, view IMDb pages, and track next-season return dates — all in a single HTML file with no account, no API keys, and no installation required.
 
 🔗 **Live app:** <a href="https://davidfliesen.github.io/tv-watchlist" target="_blank">davidfliesen.github.io/tv-watchlist</a>
 
@@ -24,6 +24,7 @@ A beautiful, fully self-contained TV show tracker. Search from a built-in databa
 - **Air day & time** — shows the broadcast day and ET time for network shows
 - **Color-coded status badges** — Renewed (green), Airing (purple), In Production (blue), Final Season (gold), Ended (red), Cancelled (orange)
 - **Similar show recommendations** — 3 suggestions per show based on genre; internet-found shows get genre-matched recommendations automatically from a 27-genre recommendation map
+- **IMDb link** — every card has a yellow IMDb button that opens the show’s page on IMDb; links directly to the correct page for internet-found shows (IMDb ID pulled from TVmaze), or to an IMDb TV search for database shows
 
 ### 📝 Show Management
 
@@ -31,7 +32,7 @@ A beautiful, fully self-contained TV show tracker. Search from a built-in databa
 - **Move between tabs** — every card has a **→ Awaiting** or **→ Watching** button to shift it with one tap
 - **Tab & Position in edit** — open any card’s edit form to change its tab and exact position in the list from a dropdown; no dragging required
 - **Add shows** — type a name and pick from search results; all fields populate automatically; new shows are added to whichever tab is active
-- **Edit shows** — update any field, including tab and position, with the ✏️ button
+- **Edit shows** — update any field, including tab, position, and IMDb ID, with the ✏️ button
 - **Delete shows** — remove individual shows with the 🗑️ button and a confirmation prompt
 - **Filter by network** — filter your list by any network or streaming service, independently per tab
 - **Starts empty** — the app opens with a clean slate so you build your own personal list
@@ -45,8 +46,8 @@ A beautiful, fully self-contained TV show tracker. Search from a built-in databa
 ### 💾 Data Management
 
 - **Auto-saved** — every change is saved to browser `localStorage` automatically
-- **Save Data** — exports your full watchlist as a dated `.json` backup file; on iPad/iPhone opens a copy-to-clipboard modal since iOS blocks file downloads
-- **Upload Data** — restore any previously saved `.json` file to reload your watchlist
+- **Save Data** — opens a modal with two options: **Download as File** (best for desktop) or **Copy to Clipboard** (best for iPad/iPhone); both save everything including tab assignments, card order, and all show data
+- **Upload Data** — opens a modal with two options: **Upload from File** (select a saved `.json`) or **Paste from Clipboard** (paste text copied from Save Data); both methods fully restore your watchlist
 - **Clear All** — wipe your entire watchlist with a confirmation prompt and a reminder to save first
 
 ### 🔍 View Controls
@@ -95,13 +96,15 @@ Send the HTML file to anyone. They open it in their browser and it works immedia
 |**Show found online**               |Results labeled **Found Online 🌐** pull live data from TVmaze                                          |
 |**Show not found anywhere**         |Click “None of these — enter manually”                                                                 |
 |**Duplicate show**                  |App warns you and points to the edit button instead                                                    |
+|**View show on IMDb**               |Click the yellow **IMDb** button at the bottom of any card                                             |
+|**Set a custom IMDb link**          |Click ✏️ edit — enter a title ID (e.g. `tt0944947`) or paste a full IMDb URL                            |
 |**Edit a show**                     |Click the ✏️ pencil icon on any card                                                                    |
 |**Delete a show**                   |Click the 🗑️ trash icon and confirm                                                                     |
 |**Filter by network**               |Click any network pill in the sticky toolbar (per tab)                                                 |
 |**Zoom in/out**                     |Use − / 100% / + in the view toolbar; click 100% to reset                                              |
 |**Full Screen**                     |Click **⛶ Full Screen** in the view toolbar                                                            |
-|**Save Data**                       |Click 💾 **Save Data** — downloads `.json` on desktop; copy modal on iPad/iPhone                        |
-|**Upload Data**                     |Click 📂 **Upload Data** — loads a previously saved `.json` file                                        |
+|**Save Data**                       |Click 💾 **Save Data** — choose **Download File** (desktop) or **Copy to Clipboard** (iPad/iPhone)      |
+|**Upload Data**                     |Click 📂 **Upload Data** — choose **Upload from File** or **Paste from Clipboard**                      |
 |**Clear All**                       |Click 🗑️ **Clear All** — removes all shows after confirmation                                           |
 |**Learn more**                      |Click 📖 **More About App** in the header                                                               |
 
@@ -134,6 +137,7 @@ Selecting an internet result auto-fills:
 - Current status (Airing, Ended, In Production, etc.)
 - Show description
 - **3 similar show recommendations** generated automatically from the show’s genre tags using a built-in 27-genre map covering Drama, Crime, Comedy, Thriller, Sci-Fi, Fantasy, Mystery, Western, Medical, Legal, Espionage, Religion, War, and more
+- **IMDb ID** — TVmaze returns the IMDb title ID for most shows, so the IMDb button on the card links directly to the correct IMDb page (e.g. `tt4288182` for Reacher)
 
 The “Next Season” field is left for you to fill in, since TVmaze doesn’t track future season dates.
 
@@ -154,13 +158,19 @@ For any show not in the database, the live TVmaze search covers essentially ever
 
 Your watchlist saves automatically to browser `localStorage` on every change. The data toolbar provides three additional controls:
 
-**💾 Save Data** — exports your full watchlist (both tabs, card order) as a dated `.json` file. On desktop this downloads directly. On **iPad/iPhone**, a modal opens with a **Copy to Clipboard** button — paste into Notes to keep a backup, then use Upload Data to restore.
+**💾 Save Data** — opens a modal with two options:
 
-**📂 Upload Data** — loads a previously saved `.json` file, replacing the current watchlist. The app validates the file before applying it.
+- **📁 Download as File** — downloads a dated `.json` file (e.g. `tv-watchlist-2026-05-22.json`) directly to your device. Works best on desktop browsers. On iPad/iPhone the browser may block downloads — use Copy instead.
+- **📋 Copy to Clipboard** — copies the full watchlist as JSON text. Paste into Notes, Messages, or any app to keep a backup. Use **Paste from Clipboard** in Upload Data to restore it later. A scrollable text area is also shown for manual select-all-and-copy if the clipboard API is blocked.
+
+**📂 Upload Data** — opens a modal with two options:
+
+- **📁 Upload from File** — opens a file picker to select a previously downloaded `.json` file. Works best on desktop.
+- **📋 Paste from Clipboard** — paste JSON text you previously copied from Save Data into a text area, then tap **Load from Pasted Text**. Best option for iPad/iPhone.
 
 **🗑️ Clear All** — removes every show after a two-step confirmation with a reminder to save first.
 
-> **Tip:** Before switching browsers or clearing your list, use **Save Data** first. Tab assignments, card order, and all show data are preserved in the backup.
+> **Tip:** Before switching browsers or clearing your list, use **Save Data → Copy to Clipboard** (iPad/iPhone) or **Download as File** (desktop) first. Tab assignments, card order, IMDb IDs, and all show data are preserved in the backup.
 
 -----
 
@@ -176,25 +186,26 @@ Your watchlist saves automatically to browser `localStorage` on every change. Th
 
 ## 🛠️ Technical Details
 
-|Item               |Detail                                                                                  |
-|-------------------|----------------------------------------------------------------------------------------|
-|Stack              |Vanilla HTML + CSS + React 18 (via CDN)                                                 |
-|JSX transpilation  |Babel Standalone (via CDN)                                                              |
-|Storage            |Browser `localStorage` (auto-save + manual export/import)                               |
-|Fonts              |Google Fonts — Inter + Bebas Neue                                                       |
-|Show database      |65 hardcoded shows with full metadata                                                   |
-|Internet search    |[TVmaze API](https://www.tvmaze.com/api) — free, no key required, CORS-enabled          |
-|Recommendations    |27-genre built-in map for genre-matched suggestions                                     |
-|Tabs               |Now Watching / Awaiting — stored per show, persisted in localStorage                    |
-|Drag & drop        |HTML5 drag events (desktop) + non-passive touch events on ⠿ handle (iPad/iPhone)        |
-|Fullscreen         |Real Fullscreen API (desktop) + webkit prefix + CSS fixed-viewport fallback (iOS Chrome)|
-|iOS save           |Copy-to-clipboard modal fallback when browser blocks file downloads                     |
-|Tab & Position edit|Dropdowns in edit form for precise tab switching and list positioning                   |
-|Zoom               |CSS `zoom` property, 60%–150% in 10% steps                                              |
-|External calls     |Google Fonts (cosmetic only) + TVmaze API (show search only)                            |
-|File size          |~89 KB (single file, everything included)                                               |
-|Browser support    |Chrome, Firefox, Safari, Edge (any modern browser)                                      |
-|Starts with        |Empty list — users build their own from scratch                                         |
+|Item               |Detail                                                                                         |
+|-------------------|-----------------------------------------------------------------------------------------------|
+|Stack              |Vanilla HTML + CSS + React 18 (via CDN)                                                        |
+|JSX transpilation  |Babel Standalone (via CDN)                                                                     |
+|Storage            |Browser `localStorage` (auto-save + manual export/import)                                      |
+|Fonts              |Google Fonts — Inter + Bebas Neue                                                              |
+|Show database      |65 hardcoded shows with full metadata                                                          |
+|Internet search    |[TVmaze API](https://www.tvmaze.com/api) — free, no key required, CORS-enabled                 |
+|Recommendations    |27-genre built-in map for genre-matched suggestions                                            |
+|Tabs               |Now Watching / Awaiting — stored per show, persisted in localStorage                           |
+|Drag & drop        |HTML5 drag events (desktop) + non-passive touch events on ⠿ handle (iPad/iPhone)               |
+|Fullscreen         |Real Fullscreen API (desktop) + webkit prefix + CSS fixed-viewport fallback (iOS Chrome)       |
+|iOS save           |Copy-to-clipboard modal fallback when browser blocks file downloads                            |
+|Tab & Position edit|Dropdowns in edit form for precise tab switching and list positioning                          |
+|Zoom               |CSS `zoom` property, 60%–150% in 10% steps                                                     |
+|IMDb links         |Direct link via stored `tt` ID; search URL fallback for database shows                         |
+|External calls     |Google Fonts (cosmetic only) + TVmaze API (show search only) + IMDb (opens in new tab on click)|
+|File size          |~96 KB (single file, everything included)                                                      |
+|Browser support    |Chrome, Firefox, Safari, Edge (any modern browser)                                             |
+|Starts with        |Empty list — users build their own from scratch                                                |
 
 -----
 
