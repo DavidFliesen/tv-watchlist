@@ -356,7 +356,19 @@ const EMPTY_FORM = {name:"",network:"",nextSeason:"",airDay:"",airTime:"",status
 function loadFromStorage() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
+    if (raw) {
+      const stored = JSON.parse(raw);
+      // Merge imdbId from SHOW_DB into stored shows that are missing it
+      const dbMap = {};
+      SHOW_DB.forEach(s => { if (s.imdbId) dbMap[s.name.toLowerCase()] = s.imdbId; });
+      return stored.map(s => {
+        if (!s.imdbId) {
+          const id = dbMap[s.name.toLowerCase()];
+          if (id) return { ...s, imdbId: id };
+        }
+        return s;
+      });
+    }
   } catch(e) {}
   return null;
 }
