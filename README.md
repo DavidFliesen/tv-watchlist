@@ -24,7 +24,7 @@ A beautiful, fully self-contained TV show tracker. Search from a built-in databa
 - **Air day & time** — shows the broadcast day and ET time for network shows
 - **Color-coded status badges** — Renewed (green), Airing (purple), In Production (blue), Final Season (gold), Ended (red), Cancelled (orange)
 - **Similar show recommendations** — 3 suggestions per show based on genre; internet-found shows get genre-matched recommendations automatically from a 27-genre recommendation map
-- **IMDb link** — every card has a yellow IMDb button that opens the show’s page on IMDb; links directly to the correct page for internet-found shows (IMDb ID pulled from TVmaze), or to an IMDb TV search for database shows
+- **IMDb link** — every card has a yellow IMDb button that opens the show’s page directly on IMDb; all database shows have their exact IMDb title ID hardcoded (e.g. `tt9288030` for Reacher); internet-found shows get the ID automatically from TVmaze
 
 ### 📝 Show Management
 
@@ -137,7 +137,7 @@ Selecting an internet result auto-fills:
 - Current status (Airing, Ended, In Production, etc.)
 - Show description
 - **3 similar show recommendations** generated automatically from the show’s genre tags using a built-in 27-genre map covering Drama, Crime, Comedy, Thriller, Sci-Fi, Fantasy, Mystery, Western, Medical, Legal, Espionage, Religion, War, and more
-- **IMDb ID** — TVmaze returns the IMDb title ID for most shows, so the IMDb button on the card links directly to the correct IMDb page (e.g. `tt4288182` for Reacher)
+- **IMDb ID** — TVmaze returns the IMDb title ID for most shows, so the IMDb button links directly to the correct IMDb page automatically
 
 The “Next Season” field is left for you to fill in, since TVmaze doesn’t track future season dates.
 
@@ -186,26 +186,26 @@ Your watchlist saves automatically to browser `localStorage` on every change. Th
 
 ## 🛠️ Technical Details
 
-|Item               |Detail                                                                                         |
-|-------------------|-----------------------------------------------------------------------------------------------|
-|Stack              |Vanilla HTML + CSS + React 18 (via CDN)                                                        |
-|JSX transpilation  |Babel Standalone (via CDN)                                                                     |
-|Storage            |Browser `localStorage` (auto-save + manual export/import)                                      |
-|Fonts              |Google Fonts — Inter + Bebas Neue                                                              |
-|Show database      |65 hardcoded shows with full metadata                                                          |
-|Internet search    |[TVmaze API](https://www.tvmaze.com/api) — free, no key required, CORS-enabled                 |
-|Recommendations    |27-genre built-in map for genre-matched suggestions                                            |
-|Tabs               |Now Watching / Awaiting — stored per show, persisted in localStorage                           |
-|Drag & drop        |HTML5 drag events (desktop) + non-passive touch events on ⠿ handle (iPad/iPhone)               |
-|Fullscreen         |Real Fullscreen API (desktop) + webkit prefix + CSS fixed-viewport fallback (iOS Chrome)       |
-|iOS save           |Copy-to-clipboard modal fallback when browser blocks file downloads                            |
-|Tab & Position edit|Dropdowns in edit form for precise tab switching and list positioning                          |
-|Zoom               |CSS `zoom` property, 60%–150% in 10% steps                                                     |
-|IMDb links         |Direct link via stored `tt` ID; search URL fallback for database shows                         |
-|External calls     |Google Fonts (cosmetic only) + TVmaze API (show search only) + IMDb (opens in new tab on click)|
-|File size          |~96 KB (single file, everything included)                                                      |
-|Browser support    |Chrome, Firefox, Safari, Edge (any modern browser)                                             |
-|Starts with        |Empty list — users build their own from scratch                                                |
+|Item               |Detail                                                                                                                        |
+|-------------------|------------------------------------------------------------------------------------------------------------------------------|
+|Stack              |Vanilla HTML + CSS + React 18 (via CDN)                                                                                       |
+|JSX transpilation  |Babel Standalone (via CDN)                                                                                                    |
+|Storage            |Browser `localStorage` (auto-save + manual export/import)                                                                     |
+|Fonts              |Google Fonts — Inter + Bebas Neue                                                                                             |
+|Show database      |65 hardcoded shows with full metadata                                                                                         |
+|Internet search    |[TVmaze API](https://www.tvmaze.com/api) — free, no key required, CORS-enabled                                                |
+|Recommendations    |27-genre built-in map for genre-matched suggestions                                                                           |
+|Tabs               |Now Watching / Awaiting — stored per show, persisted in localStorage                                                          |
+|Drag & drop        |HTML5 drag events (desktop) + non-passive touch events on ⠿ handle (iPad/iPhone)                                              |
+|Fullscreen         |Real Fullscreen API (desktop) + webkit prefix + CSS fixed-viewport fallback (iOS Chrome)                                      |
+|iOS save           |Copy-to-clipboard modal fallback when browser blocks file downloads                                                           |
+|Tab & Position edit|Dropdowns in edit form for precise tab switching and list positioning                                                         |
+|Zoom               |CSS `zoom` property, 60%–150% in 10% steps                                                                                    |
+|IMDb links         |Direct `imdb.com/title/ttXXXXXXX/` links; all 63 database shows have hardcoded IDs; TVmaze-found shows get the ID from the API|
+|External calls     |Google Fonts (cosmetic only) + TVmaze API (show search only) + IMDb (opens in new tab on click)                               |
+|File size          |~96 KB (single file, everything included)                                                                                     |
+|Browser support    |Chrome, Firefox, Safari, Edge (any modern browser)                                                                            |
+|Starts with        |Empty list — users build their own from scratch                                                                               |
 
 -----
 
