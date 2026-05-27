@@ -213,30 +213,8 @@
     }
     .drop-slot.active{opacity:1;transform:scaleX(1);}
 
-    /* ── COLOR PICKER ── */
-    .color-picker-section{
-      padding-top:12px;
-      border-top:1px solid rgba(255,255,255,.07);
-      margin-top:4px;
-      display:flex;
-      align-items:center;
-      gap:8px;
-      flex-wrap:wrap;
-    }
-    .color-picker-label{
-      font-size:10px;font-weight:700;letter-spacing:1.5px;
-      text-transform:uppercase;color:var(--muted);opacity:.6;
-      white-space:nowrap;
-    }
-    .color-swatch{
-      width:20px;height:20px;border-radius:50%;
-      border:2px solid transparent;
-      cursor:pointer;
-      transition:transform 0.12s,border-color 0.12s;
-      flex-shrink:0;
-    }
-    .color-swatch:hover{transform:scale(1.25);}
-    .color-swatch.selected{border-color:#fff;transform:scale(1.2);}
+    /* ── COLOR PICKER (hidden — data persists, UI removed) ── */
+    .color-picker-section{display:none;}
     .drag-handle{display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:7px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.4);font-size:18px;cursor:grab;letter-spacing:1px;flex-shrink:0;user-select:none;-webkit-user-select:none;touch-action:none;transition:background .15s,color .15s;}
     .drag-handle:hover{background:rgba(255,255,255,.13);color:rgba(255,255,255,.75);}
     .drag-handle:active{cursor:grabbing;}
@@ -611,27 +589,35 @@ function ShowCard({show, colorIdx, onEdit, onDelete, onMoveTab, onDragStart, onD
 // Fetches the verified IMDb ID from TVmaze, caches it in the show record,
 // then navigates. Falls back to IMDb search if TVmaze has no ID.
 async function openImdb(show, onImdbIdVerified) {
-  // If we already have a verified ID, go directly
+  // If we already have a verified ID, go directly — no async needed
   if (show.imdbVerified && show.imdbId) {
     window.open(`https://www.imdb.com/title/${show.imdbId}/`, '_blank');
     return;
   }
-  // Query TVmaze for the real IMDb ID
+  // Open the window SYNCHRONOUSLY now (in direct response to the click event)
+  // so browsers don't block it as a popup. We'll navigate it after the fetch.
+  const win = window.open('', '_blank');
+  if (!win) {
+    // Popup blocked — fall back to same-tab navigation
+    window.location.href = `https://www.imdb.com/find/?q=${encodeURIComponent(show.name)}&s=tt&ttype=tv`;
+    return;
+  }
+  // Show a brief loading message while we fetch
+  win.document.write('<html><body style="background:#111;color:#999;font-family:sans-serif;padding:40px;font-size:16px">Looking up IMDb page for <strong style=\"color:#f5c518\">' + show.name + '</strong>…</body></html>');
   try {
     const res = await fetch(`https://api.tvmaze.com/singlesearch/shows?q=${encodeURIComponent(show.name)}`);
     if (res.ok) {
       const data = await res.json();
       const tvmazeId = data?.externals?.imdb;
       if (tvmazeId) {
-        // Cache the verified ID back into the show
         onImdbIdVerified(show.id, tvmazeId);
-        window.open(`https://www.imdb.com/title/${tvmazeId}/`, '_blank');
+        win.location.href = `https://www.imdb.com/title/${tvmazeId}/`;
         return;
       }
     }
   } catch(e) { /* fall through */ }
-  // Fallback: IMDb search
-  window.open(`https://www.imdb.com/find/?q=${encodeURIComponent(show.name)}&s=tt&ttype=tv`, '_blank');
+  // Fallback: IMDb search in the already-open window
+  win.location.href = `https://www.imdb.com/find/?q=${encodeURIComponent(show.name)}&s=tt&ttype=tv`;
 }
 
 // ── TVmaze internet search ──────────────────────────────────────────────────
