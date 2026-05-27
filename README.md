@@ -19,7 +19,8 @@ A beautiful, fully self-contained TV show tracker. Search from a built-in databa
 
 ### 📋 Show Cards
 
-- **Colored show cards** — each show gets a unique color theme (purple, green, teal, gold, etc.) for easy visual scanning
+- **Colored show cards** — each show gets a unique persistent color theme (purple, green, teal, gold, etc.); color stays with the show regardless of position or tab
+- **Card color picker** — a row of 12 color swatches at the bottom of every card lets you reassign any card’s color with one tap; selected color is highlighted with a white ring and saved immediately
 - **Next Season banner** — prominent display of estimated return date, TBD, in production, or ended status with matching icons (📅 ⏳ 🎬 🏁)
 - **Air day & time** — shows the broadcast day and ET time for network shows
 - **Color-coded status badges** — Renewed (green), Airing (purple), In Production (blue), Final Season (gold), Ended (red), Cancelled (orange)
@@ -40,9 +41,10 @@ A beautiful, fully self-contained TV show tracker. Search from a built-in databa
 
 ### 🔀 Drag to Reorder
 
-- **Desktop** — drag any card with the mouse to reorder it within the tab
-- **iPad / iPhone** — tap and hold the **⠿ grab handle** in the top-right of any card, then drag to reorder; uses non-passive touch events so dragging doesn’t scroll the page
-- Card order is saved automatically
+- **Desktop** — drag any card using the **⠿ grab handle** in the top-right to reorder it within the tab; browser ghost image is suppressed so only the CSS effect is shown
+- **iPad / iPhone** — tap and hold the **⠿ grab handle**, then drag to reorder; uses non-passive touch events so dragging doesn’t scroll the page
+- **Visual feedback** — the card being dragged fades and desaturates; the drop-target card bounces with an animation to show exactly where the card will land; a gold gradient bar appears at the insertion point
+- Card order and color assignments are saved automatically
 
 ### 💾 Data Management
 
@@ -89,9 +91,10 @@ Send the HTML file to anyone. They open it in their browser and it works immedia
 |Action                              |How                                                                                                                  |
 |------------------------------------|---------------------------------------------------------------------------------------------------------------------|
 |**Switch tabs**                     |Click **Now Watching** or **Awaiting** at the top                                                                    |
+|**Change a card’s color**           |Click any of the 12 color swatches in the **Card Color** row at the bottom of the card                               |
 |**Move a show between tabs**        |Click **→ Awaiting** or **→ Watching** on any card                                                                   |
-|**Reorder cards (desktop)**         |Click and drag any card to a new position                                                                            |
-|**Reorder cards (iPad/iPhone)**     |Touch and hold the **⠿** handle on the card, then drag                                                               |
+|**Reorder cards (desktop)**         |Drag the **⠿** handle on any card to reorder; target card bounces to show landing position                           |
+|**Reorder cards (iPad/iPhone)**     |Touch and hold the **⠿** handle, then drag; same bounce animation shows drop target                                  |
 |**Change tab or position precisely**|Click ✏️ edit — Tab and Position dropdowns are at the top of the form                                                 |
 |**Add a show**                      |Click **+ ADD SHOW**, type a name — local results appear instantly, internet results load automatically              |
 |**Show found online**               |Results labeled **Found Online 🌐** pull live data from TVmaze                                                        |
@@ -188,26 +191,27 @@ Your watchlist saves automatically to browser `localStorage` on every change. Th
 
 ## 🛠️ Technical Details
 
-|Item               |Detail                                                                                                                                   |
-|-------------------|-----------------------------------------------------------------------------------------------------------------------------------------|
-|Stack              |Vanilla HTML + CSS + React 18 (via CDN)                                                                                                  |
-|JSX transpilation  |Babel Standalone (via CDN)                                                                                                               |
-|Storage            |Browser `localStorage` (auto-save + manual export/import)                                                                                |
-|Fonts              |Google Fonts — Inter + Bebas Neue                                                                                                        |
-|Show database      |65 hardcoded shows with full metadata                                                                                                    |
-|Internet search    |[TVmaze API](https://www.tvmaze.com/api) — free, no key required, CORS-enabled                                                           |
-|Recommendations    |27-genre built-in map for genre-matched suggestions                                                                                      |
-|Tabs               |Now Watching / Awaiting — stored per show, persisted in localStorage                                                                     |
-|Drag & drop        |HTML5 drag events (desktop) + non-passive touch events on ⠿ handle (iPad/iPhone)                                                         |
-|Fullscreen         |Real Fullscreen API (desktop) + webkit prefix + CSS fixed-viewport fallback (iOS Chrome)                                                 |
-|iOS save           |Copy-to-clipboard modal fallback when browser blocks file downloads                                                                      |
-|Tab & Position edit|Dropdowns in edit form for precise tab switching and list positioning                                                                    |
-|Zoom               |CSS `zoom` property, 60%–150% in 10% steps                                                                                               |
-|IMDb links         |TVmaze `singlesearch` API used on click to get verified `externals.imdb` ID; cached per show after first lookup; rec tags use same lookup|
-|External calls     |Google Fonts (cosmetic only) + TVmaze API (show search only) + IMDb (opens in new tab on click)                                          |
-|File size          |~100 KB (single file, everything included)                                                                                               |
-|Browser support    |Chrome, Firefox, Safari, Edge (any modern browser)                                                                                       |
-|Starts with        |Empty list — users build their own from scratch                                                                                          |
+|Item               |Detail                                                                                                                                                    |
+|-------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------|
+|Stack              |Vanilla HTML + CSS + React 18 (via CDN)                                                                                                                   |
+|JSX transpilation  |Babel Standalone (via CDN)                                                                                                                                |
+|Storage            |Browser `localStorage` (auto-save + manual export/import)                                                                                                 |
+|Fonts              |Google Fonts — Inter + Bebas Neue                                                                                                                         |
+|Show database      |65 hardcoded shows with full metadata                                                                                                                     |
+|Internet search    |[TVmaze API](https://www.tvmaze.com/api) — free, no key required, CORS-enabled                                                                            |
+|Recommendations    |27-genre built-in map for genre-matched suggestions                                                                                                       |
+|Tabs               |Now Watching / Awaiting — stored per show, persisted in localStorage                                                                                      |
+|Card colors        |Stored as `_colorIdx` per show in localStorage; assigned at load time; user-selectable via 12-swatch picker on each card                                  |
+|Drag & drop        |HTML5 drag with blank canvas `setDragImage` override (suppresses browser ghost) + non-passive touch events on ⠿ handle; `@keyframes` bounce on drop target|
+|Fullscreen         |Real Fullscreen API (desktop) + webkit prefix + CSS fixed-viewport fallback (iOS Chrome)                                                                  |
+|iOS save           |Copy-to-clipboard modal fallback when browser blocks file downloads                                                                                       |
+|Tab & Position edit|Dropdowns in edit form for precise tab switching and list positioning                                                                                     |
+|Zoom               |CSS `zoom` property, 60%–150% in 10% steps                                                                                                                |
+|IMDb links         |TVmaze `singlesearch` API used on click to get verified `externals.imdb` ID; cached per show after first lookup; rec tags use same lookup                 |
+|External calls     |Google Fonts (cosmetic only) + TVmaze API (show search only) + IMDb (opens in new tab on click)                                                           |
+|File size          |~104 KB (single file, everything included)                                                                                                                |
+|Browser support    |Chrome, Firefox, Safari, Edge (any modern browser)                                                                                                        |
+|Starts with        |Empty list — users build their own from scratch                                                                                                           |
 
 -----
 
