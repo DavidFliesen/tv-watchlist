@@ -104,10 +104,14 @@
     .recs-list{display:flex;flex-wrap:wrap;gap:6px;}
     .rec-tag{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.75);font-size:15px;font-weight:500;padding:4px 12px;border-radius:6px;transition:all .15s;}
     .rec-tag:hover{background:rgba(255,255,255,.13);color:#fff;}
-    .imdb-btn{display:inline-flex;align-items:center;gap:6px;background:#f5c518;color:#000;font-family:'Inter',sans-serif;font-size:13px;font-weight:800;padding:5px 13px;border-radius:6px;border:none;cursor:pointer;letter-spacing:.5px;transition:opacity .15s,background .15s;margin-top:12px;}
+    .imdb-btn{display:inline-flex;align-items:center;gap:5px;background:#f5c518;color:#000;font-family:'Inter',sans-serif;font-size:12px;font-weight:800;padding:4px 11px;border-radius:6px;border:none;cursor:pointer;letter-spacing:.5px;transition:opacity .15s,background .15s;}
     .imdb-btn:hover{opacity:.85;}
     .imdb-btn:disabled{background:#8a7a10;color:#333;cursor:wait;opacity:.7;}
     .imdb-btn svg{flex-shrink:0;}
+    .network-imdb-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:6px;}
+    .rec-tag{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.75);font-size:13px;font-weight:500;padding:4px 12px;border-radius:6px;transition:all .15s;cursor:pointer;font-family:'Inter',sans-serif;}
+    .rec-tag:hover{background:rgba(255,255,255,.15);color:#fff;}
+    .rec-tag-loading{opacity:.55;cursor:wait;}
     .overlay{position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px;animation:fadeIn .15s ease;}
     @keyframes fadeIn{from{opacity:0}to{opacity:1}}
     .modal{background:#1a1a28;border:1px solid #3a3a55;border-radius:14px;width:100%;max-width:560px;max-height:92vh;overflow-y:auto;animation:slideUp .2s ease;}
@@ -369,7 +373,7 @@ function saveToStorage(shows) {
 const DEFAULT_SHOWS = [];
 
 // ── IMDb Button component ────────────────────────────────────────────────────
-function ImdbButton({show, onImdbIdVerified}) {
+function ImdbButton({show, onImdbIdVerified, compact}) {
   const [loading, setLoading] = useState(false);
 
   async function handleClick() {
@@ -378,18 +382,42 @@ function ImdbButton({show, onImdbIdVerified}) {
     setLoading(false);
   }
 
+  const sz = compact ? 14 : 16;
   return (
     <button
       className="imdb-btn"
       onClick={handleClick}
       disabled={loading}
       title={`View ${show.name} on IMDb`}
+      style={compact ? {fontSize:11, padding:'3px 9px'} : {}}
     >
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+      <svg width={sz} height={sz} viewBox="0 0 24 24" fill="currentColor">
         <path d="M14.31 9.588v.005c-.077-.048-1.012-.062-1.012-.062v4.932s.917-.013 1.012-.052l.001.005c.487-.178.55-.793.55-2.416 0-1.622-.076-2.234-.55-2.412zM4 4v16h16V4H4zm4.557 11.858H7.07V8.142h1.487v7.716zm4.211.088c-.22.091-1.946.178-2.637.092v-7.9s1.94-.072 2.637.083c1.505.337 1.587 1.808 1.587 3.785 0 2.283-.16 3.639-1.587 3.94zM18 13.215c0 .784-.055 1.334-.214 1.659-.32.648-1.144.727-1.773.536a.823.823 0 01-.32-.23v.678h-1.441V8.142h1.441v2.352a.823.823 0 01.32-.227c.63-.192 1.453-.114 1.773.534.16.325.214.875.214 1.658v.756z"/>
       </svg>
-      {loading ? 'Looking up…' : 'IMDb'}
+      {loading ? '…' : 'IMDb'}
     </button>
+  );
+}
+
+// ── RecTag: clickable recommendation that opens IMDb via TVmaze lookup ────────
+function RecTag({name}) {
+  const [loading, setLoading] = useState(false);
+
+  async function handleClick() {
+    setLoading(true);
+    // Reuse the same openImdb flow with a minimal show-like object
+    await openImdb({name, imdbId: null, imdbVerified: false}, () => {});
+    setLoading(false);
+  }
+
+  return (
+    <span
+      className={`rec-tag${loading ? ' rec-tag-loading' : ''}`}
+      onClick={loading ? undefined : handleClick}
+      title={`Search IMDb for ${name}`}
+    >
+      {loading ? `${name}…` : name}
+    </span>
   );
 }
 
@@ -453,7 +481,10 @@ function ShowCard({show, colorIdx, onEdit, onDelete, onMoveTab, onDragStart, onD
         <div className="card-top">
           <div className="card-top-left">
             <div className="show-name" style={{color:col.accent}}>{show.name}</div>
-            {show.network && <span className="network-pill" style={{color:col.accent,borderColor:col.border,background:"rgba(0,0,0,0.3)"}}>{show.network}</span>}
+            <div className="network-imdb-row">
+              <ImdbButton show={show} onImdbIdVerified={onImdbIdVerified} compact/>
+              {show.network && <span className="network-pill" style={{color:col.accent,borderColor:col.border,background:"rgba(0,0,0,0.3)"}}>{show.network}</span>}
+            </div>
           </div>
           <div className="card-actions">
             <button
@@ -491,11 +522,11 @@ function ShowCard({show, colorIdx, onEdit, onDelete, onMoveTab, onDragStart, onD
           <div className="recs-section">
             <div className="recs-label">If you like this, also watch</div>
             <div className="recs-list">
-              {show.recommendations.filter(Boolean).map((r,i) => <span key={i} className="rec-tag">{r}</span>)}
+              {show.recommendations.filter(Boolean).map((r,i) => <RecTag key={i} name={r}/>)}
             </div>
           </div>
         )}
-        <ImdbButton show={show} onImdbIdVerified={onImdbIdVerified}/>
+
       </div>
     </div>
   );
