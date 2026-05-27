@@ -404,55 +404,39 @@ function saveToStorage(shows) {
 const DEFAULT_SHOWS = [];
 
 // ── IMDb Button component ────────────────────────────────────────────────────
-function ImdbButton({show, onImdbIdVerified, compact}) {
-  const [loading, setLoading] = useState(false);
-
-  async function handleClick() {
-    setLoading(true);
-    await openImdb(show, onImdbIdVerified);
-    setLoading(false);
-  }
-
+function ImdbButton({show, compact}) {
   const sz = compact ? 14 : 16;
   return (
     <button
       className="imdb-btn"
-      onClick={handleClick}
-      disabled={loading}
-      title={`View ${show.name} on IMDb`}
+      onClick={() => openImdbSync(show.name, show.imdbId)}
+      title={show.imdbId ? `View ${show.name} on IMDb` : `Search IMDb for ${show.name}`}
       style={compact ? {fontSize:11, padding:'3px 9px'} : {}}
     >
       <svg width={sz} height={sz} viewBox="0 0 24 24" fill="currentColor">
         <path d="M14.31 9.588v.005c-.077-.048-1.012-.062-1.012-.062v4.932s.917-.013 1.012-.052l.001.005c.487-.178.55-.793.55-2.416 0-1.622-.076-2.234-.55-2.412zM4 4v16h16V4H4zm4.557 11.858H7.07V8.142h1.487v7.716zm4.211.088c-.22.091-1.946.178-2.637.092v-7.9s1.94-.072 2.637.083c1.505.337 1.587 1.808 1.587 3.785 0 2.283-.16 3.639-1.587 3.94zM18 13.215c0 .784-.055 1.334-.214 1.659-.32.648-1.144.727-1.773.536a.823.823 0 01-.32-.23v.678h-1.441V8.142h1.441v2.352a.823.823 0 01.32-.227c.63-.192 1.453-.114 1.773.534.16.325.214.875.214 1.658v.756z"/>
       </svg>
-      {loading ? '…' : 'IMDb'}
+      IMDb
     </button>
   );
 }
 
-// ── RecTag: clickable recommendation that opens IMDb via TVmaze lookup ────────
-function RecTag({name}) {
-  const [loading, setLoading] = useState(false);
-
-  async function handleClick() {
-    setLoading(true);
-    // Reuse the same openImdb flow with a minimal show-like object
-    await openImdb({name, imdbId: null, imdbVerified: false}, () => {});
-    setLoading(false);
-  }
-
+// ── RecTag: rec tags hold a pre-fetched imdbId if available ─────────────────
+// imdbIds prop is a map of lowercaseName → imdbId resolved in the background
+function RecTag({name, imdbIds}) {
+  const id = imdbIds ? (imdbIds[name.toLowerCase()] || '') : '';
   return (
     <span
-      className={`rec-tag${loading ? ' rec-tag-loading' : ''}`}
-      onClick={loading ? undefined : handleClick}
-      title={`Search IMDb for ${name}`}
+      className="rec-tag"
+      onClick={() => openImdbSync(name, id)}
+      title={id ? `View ${name} on IMDb` : `Search IMDb for ${name}`}
     >
-      {loading ? `${name}…` : name}
+      {name}
     </span>
   );
 }
 
-function ShowCard({show, colorIdx, onEdit, onDelete, onMoveTab, onDragStart, onDragOver, onDrop, dragId, dragOverId, onImdbIdVerified, onColorChange, index}) {
+function ShowCard({show, colorIdx, onEdit, onDelete, onMoveTab, onDragStart, onDragOver, onDrop, dragId, dragOverId, imdbIds, onColorChange, index}) {
   const col = CARD_COLORS[colorIdx % CARD_COLORS.length];
   const ss = getStatusStyle(show.status);
   const isDragging = dragId === show.id;
@@ -521,7 +505,7 @@ function ShowCard({show, colorIdx, onEdit, onDelete, onMoveTab, onDragStart, onD
           <div className="card-top-left">
             <div className="show-name" style={{color:col.accent}}>{show.name}</div>
             <div className="network-imdb-row">
-              <ImdbButton show={show} onImdbIdVerified={onImdbIdVerified} compact/>
+              <ImdbButton show={show} compact/>
               {show.network && <span className="network-pill" style={{color:col.accent,borderColor:col.border,background:"rgba(0,0,0,0.3)"}}>{show.network}</span>}
             </div>
           </div>
@@ -561,7 +545,7 @@ function ShowCard({show, colorIdx, onEdit, onDelete, onMoveTab, onDragStart, onD
           <div className="recs-section">
             <div className="recs-label">If you like this, also watch</div>
             <div className="recs-list">
-              {show.recommendations.filter(Boolean).map((r,i) => <RecTag key={i} name={r}/>)}
+              {show.recommendations.filter(Boolean).map((r,i) => <RecTag key={i} name={r} imdbIds={imdbIds}/>)}
             </div>
           </div>
         )}
@@ -588,36 +572,36 @@ function ShowCard({show, colorIdx, onEdit, onDelete, onMoveTab, onDragStart, onD
 // ── IMDb lookup via TVmaze ────────────────────────────────────────────────────
 // Fetches the verified IMDb ID from TVmaze, caches it in the show record,
 // then navigates. Falls back to IMDb search if TVmaze has no ID.
-async function openImdb(show, onImdbIdVerified) {
-  // If we already have a verified ID, go directly — no async needed
-  if (show.imdbVerified && show.imdbId) {
-    window.open(`https://www.imdb.com/title/${show.imdbId}/`, '_blank');
-    return;
-  }
-  // Open the window SYNCHRONOUSLY now (in direct response to the click event)
-  // so browsers don't block it as a popup. We'll navigate it after the fetch.
-  const win = window.open('', '_blank');
-  if (!win) {
-    // Popup blocked — fall back to same-tab navigation
-    window.location.href = `https://www.imdb.com/find/?q=${encodeURIComponent(show.name)}&s=tt&ttype=tv`;
-    return;
-  }
-  // Show a brief loading message while we fetch
-  win.document.write('<html><body style="background:#111;color:#999;font-family:sans-serif;padding:40px;font-size:16px">Looking up IMDb page for <strong style=\"color:#f5c518\">' + show.name + '</strong>…</body></html>');
-  try {
-    const res = await fetch(`https://api.tvmaze.com/singlesearch/shows?q=${encodeURIComponent(show.name)}`);
-    if (res.ok) {
+// ── IMDb: open synchronously — NO async before window.open (iOS Safari rule) ─
+// The ID must already be known before this is called.
+// imdbId  = verified tt ID  → go directly to title page
+// imdbId  = ''              → go to IMDb search (still useful)
+function openImdbSync(name, imdbId) {
+  const url = imdbId
+    ? `https://www.imdb.com/title/${imdbId}/`
+    : `https://www.imdb.com/find/?q=${encodeURIComponent(name)}&s=tt&ttype=tv`;
+  window.open(url, '_blank');
+}
+
+// ── Background prefetch: silently resolve IMDb IDs via TVmaze ────────────────
+// Called on app load and when new shows are added.
+// Returns a map of  lowercaseName → imdbId  for all shows that respond.
+async function prefetchImdbIds(showList, onResolved) {
+  for (const show of showList) {
+    if (show.imdbVerified && show.imdbId) continue; // already known
+    try {
+      const res = await fetch(
+        `https://api.tvmaze.com/singlesearch/shows?q=${encodeURIComponent(show.name)}`,
+        { signal: AbortSignal.timeout ? AbortSignal.timeout(5000) : undefined }
+      );
+      if (!res.ok) continue;
       const data = await res.json();
-      const tvmazeId = data?.externals?.imdb;
-      if (tvmazeId) {
-        onImdbIdVerified(show.id, tvmazeId);
-        win.location.href = `https://www.imdb.com/title/${tvmazeId}/`;
-        return;
-      }
-    }
-  } catch(e) { /* fall through */ }
-  // Fallback: IMDb search in the already-open window
-  win.location.href = `https://www.imdb.com/find/?q=${encodeURIComponent(show.name)}&s=tt&ttype=tv`;
+      const id = data?.externals?.imdb;
+      if (id) onResolved(show.id, id);
+    } catch(e) { /* skip on error/timeout */ }
+    // Small pause between requests so we don't hammer TVmaze
+    await new Promise(r => setTimeout(r, 120));
+  }
 }
 
 // ── TVmaze internet search ──────────────────────────────────────────────────
@@ -1033,6 +1017,19 @@ function App() {
     };
   }, []);
 
+  // ── Background prefetch of IMDb IDs ────────────────────────────────────────
+  // Runs once on load, then again whenever shows changes (catches new adds).
+  // By the time user taps IMDb, the ID is already known → pure sync click.
+  useEffect(() => {
+    const unverified = shows.filter(s => !s.imdbVerified || !s.imdbId);
+    if (unverified.length === 0) return;
+    let cancelled = false;
+    prefetchImdbIds(unverified, (id, imdbId) => {
+      if (!cancelled) handleImdbResolved(id, imdbId);
+    });
+    return () => { cancelled = true; };
+  }, [shows.map(s=>s.id).join(',')]); // re-run only when show list changes
+
   function handleZoomIn()    { setZoom(z => Math.min(z + 10, 150)); }
   function handleZoomOut()   { setZoom(z => Math.max(z - 10, 60));  }
   function handleZoomReset() { setZoom(100); }
@@ -1108,8 +1105,18 @@ function App() {
   }
   function handleDelete(){ const n=deleteShow.name; setShows(p=>p.filter(s=>s.id!==deleteShow.id)); setDeleteShow(null); showToast(`"${n}" removed`); }
 
-  function handleImdbIdVerified(id, imdbId) {
-    setShows(p => p.map(s => s.id === id ? {...s, imdbId, imdbVerified: true} : s));
+  // ── IMDb ID cache: lowercaseName → tt ID, built by background prefetch ──────
+  const [imdbIds, setImdbIds] = useState({});
+
+  function handleImdbResolved(showId, imdbId) {
+    // Update the show record so future lookups are instant
+    setShows(p => p.map(s => s.id === showId ? {...s, imdbId, imdbVerified:true} : s));
+    // Also add to the quick-lookup map for rec tags (keyed by name)
+    setShows(p => {
+      const show = p.find(s => s.id === showId);
+      if (show) setImdbIds(m => ({...m, [show.name.toLowerCase()]: imdbId}));
+      return p;
+    });
   }
 
   function handleColorChange(id, colorIdx) {
@@ -1312,7 +1319,7 @@ function App() {
                 onDrop={handleDrop}
                 dragId={dragId}
                 dragOverId={dragOver}
-                onImdbIdVerified={handleImdbIdVerified}
+                imdbIds={imdbIds}
                 onColorChange={handleColorChange}
               />
             </React.Fragment>
