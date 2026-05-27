@@ -583,26 +583,7 @@ function openImdbSync(name, imdbId) {
   window.open(url, '_blank');
 }
 
-// ── Background prefetch: silently resolve IMDb IDs via TVmaze ────────────────
-// Called on app load and when new shows are added.
-// Returns a map of  lowercaseName → imdbId  for all shows that respond.
-async function prefetchImdbIds(showList, onResolved) {
-  for (const show of showList) {
-    if (show.imdbVerified && show.imdbId) continue; // already known
-    try {
-      const res = await fetch(
-        `https://api.tvmaze.com/singlesearch/shows?q=${encodeURIComponent(show.name)}`,
-        { signal: AbortSignal.timeout ? AbortSignal.timeout(5000) : undefined }
-      );
-      if (!res.ok) continue;
-      const data = await res.json();
-      const id = data?.externals?.imdb;
-      if (id) onResolved(show.id, id);
-    } catch(e) { /* skip on error/timeout */ }
-    // Small pause between requests so we don't hammer TVmaze
-    await new Promise(r => setTimeout(r, 120));
-  }
-}
+// prefetchImdbIds is inlined in the App useEffect below
 
 // ── TVmaze internet search ──────────────────────────────────────────────────
 // Genre → recommended shows mapping
@@ -1017,18 +998,37 @@ function App() {
     };
   }, []);
 
-  // ── Background prefetch of IMDb IDs ────────────────────────────────────────
-  // Runs once on load, then again whenever shows changes (catches new adds).
-  // By the time user taps IMDb, the ID is already known → pure sync click.
+  // ── Background prefetch of IMDb IDs ─────────────────────────────────────────
+  // Uses a ref to track shows already attempted — prevents infinite re-triggers.
+  // Each show is tried once. On success, imdbId is stored on the show object.
+  // openImdbSync() then reads show.imdbId synchronously on click — works on iOS.
+  const prefetchedRef = useRef(new Set());
   useEffect(() => {
-    const unverified = shows.filter(s => !s.imdbVerified || !s.imdbId);
-    if (unverified.length === 0) return;
+    const toFetch = shows.filter(s => !s.imdbId && !prefetchedRef.current.has(s.id));
+    if (toFetch.length === 0) return;
     let cancelled = false;
-    prefetchImdbIds(unverified, (id, imdbId) => {
-      if (!cancelled) handleImdbResolved(id, imdbId);
-    });
+    (async () => {
+      for (const show of toFetch) {
+        if (cancelled) break;
+        prefetchedRef.current.add(show.id); // mark attempted before fetch
+        try {
+          const res = await fetch(
+            `https://api.tvmaze.com/singlesearch/shows?q=${encodeURIComponent(show.name)}`
+          );
+          if (!res.ok || cancelled) continue;
+          const data = await res.json();
+          const id = data?.externals?.imdb;
+          if (id && !cancelled) {
+            // Single setShows call — no double-render
+            setShows(p => p.map(s => s.id === show.id
+              ? {...s, imdbId: id, imdbVerified: true} : s));
+          }
+        } catch(e) { /* network error — skip this show */ }
+        if (!cancelled) await new Promise(r => setTimeout(r, 150));
+      }
+    })();
     return () => { cancelled = true; };
-  }, [shows.map(s=>s.id).join(',')]); // re-run only when show list changes
+  }, [shows.length]); // re-run only when show count changes (add/remove)
 
   function handleZoomIn()    { setZoom(z => Math.min(z + 10, 150)); }
   function handleZoomOut()   { setZoom(z => Math.max(z - 10, 60));  }
@@ -1105,19 +1105,12 @@ function App() {
   }
   function handleDelete(){ const n=deleteShow.name; setShows(p=>p.filter(s=>s.id!==deleteShow.id)); setDeleteShow(null); showToast(`"${n}" removed`); }
 
-  // ── IMDb ID cache: lowercaseName → tt ID, built by background prefetch ──────
-  const [imdbIds, setImdbIds] = useState({});
-
-  function handleImdbResolved(showId, imdbId) {
-    // Update the show record so future lookups are instant
-    setShows(p => p.map(s => s.id === showId ? {...s, imdbId, imdbVerified:true} : s));
-    // Also add to the quick-lookup map for rec tags (keyed by name)
-    setShows(p => {
-      const show = p.find(s => s.id === showId);
-      if (show) setImdbIds(m => ({...m, [show.name.toLowerCase()]: imdbId}));
-      return p;
-    });
-  }
+  // imdbIds map — derived directly from shows, no separate state needed
+  const imdbIds = React.useMemo(() => {
+    const m = {};
+    shows.forEach(s => { if (s.imdbId) m[s.name.toLowerCase()] = s.imdbId; });
+    return m;
+  }, [shows]);
 
   function handleColorChange(id, colorIdx) {
     setShows(p => p.map(s => s.id === id ? {...s, _colorIdx: colorIdx} : s));
