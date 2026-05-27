@@ -187,11 +187,56 @@
     .tab-btn.active .tab-count{background:rgba(232,184,75,.18);color:var(--accent);}
 
     /* ── DRAG & DROP ── */
-    .card{cursor:default;transition:transform 0.18s ease,box-shadow 0.18s ease,opacity 0.15s ease;}
-    .card.dragging{opacity:0.22;transform:scale(0.96) rotate(-1deg);box-shadow:none!important;pointer-events:none;}
-    .card.drag-target{transform:translateY(-6px) scale(1.01);box-shadow:0 0 0 2px var(--accent),0 16px 40px rgba(0,0,0,0.5);}
-    .drop-slot{height:8px;border-radius:4px;margin:-4px 0;background:linear-gradient(90deg,transparent,var(--accent),var(--accent2),transparent);opacity:0;transition:opacity 0.15s,height 0.15s;}
-    .drop-slot.active{opacity:1;height:6px;}
+    .card{cursor:default;}
+    /* dragging card becomes a ghost */
+    .card.dragging{opacity:0.18;filter:grayscale(0.4);}
+    /* drop-target card bounces up to show where card will land */
+    .card.drag-target{
+      outline:2px solid var(--accent);
+      outline-offset:2px;
+      animation:cardBounce 0.35s ease infinite alternate;
+    }
+    @keyframes cardBounce{
+      from{transform:translateY(0);}
+      to{transform:translateY(-8px);}
+    }
+    /* drop slot — horizontal bar that appears between cards */
+    .drop-slot{
+      grid-column:1/-1;
+      height:4px;
+      border-radius:3px;
+      background:linear-gradient(90deg,transparent 0%,var(--accent) 30%,var(--accent2) 70%,transparent 100%);
+      opacity:0;
+      transform:scaleX(0.3);
+      transition:opacity 0.15s,transform 0.15s;
+      pointer-events:none;
+    }
+    .drop-slot.active{opacity:1;transform:scaleX(1);}
+
+    /* ── COLOR PICKER ── */
+    .color-picker-section{
+      padding-top:12px;
+      border-top:1px solid rgba(255,255,255,.07);
+      margin-top:4px;
+      display:flex;
+      align-items:center;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+    .color-picker-label{
+      font-size:10px;font-weight:700;letter-spacing:1.5px;
+      text-transform:uppercase;color:var(--muted);opacity:.6;
+      white-space:nowrap;
+    }
+    .color-swatch{
+      width:20px;height:20px;border-radius:50%;
+      border:2px solid transparent;
+      cursor:pointer;
+      transition:transform 0.12s,border-color 0.12s;
+      flex-shrink:0;
+    }
+    .color-swatch:hover{transform:scale(1.25);}
+    .color-swatch.selected{border-color:#fff;transform:scale(1.2);}
     .drag-handle{display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:7px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.4);font-size:18px;cursor:grab;letter-spacing:1px;flex-shrink:0;user-select:none;-webkit-user-select:none;touch-action:none;transition:background .15s,color .15s;}
     .drag-handle:hover{background:rgba(255,255,255,.13);color:rgba(255,255,255,.75);}
     .drag-handle:active{cursor:grabbing;}
@@ -363,7 +408,13 @@ const EMPTY_FORM = {name:"",network:"",nextSeason:"",airDay:"",airTime:"",status
 function loadFromStorage() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
+    if (raw) {
+      const stored = JSON.parse(raw);
+      // Assign stable _colorIdx to any shows that don't have one yet
+      return stored.map((s, i) =>
+        s._colorIdx !== undefined ? s : {...s, _colorIdx: i % CARD_COLORS.length}
+      );
+    }
   } catch(e) {}
   return null;
 }
@@ -423,7 +474,7 @@ function RecTag({name}) {
   );
 }
 
-function ShowCard({show, colorIdx, onEdit, onDelete, onMoveTab, onDragStart, onDragOver, onDrop, dragId, dragOverId, onImdbIdVerified, index}) {
+function ShowCard({show, colorIdx, onEdit, onDelete, onMoveTab, onDragStart, onDragOver, onDrop, dragId, dragOverId, onImdbIdVerified, onColorChange, index}) {
   const col = CARD_COLORS[colorIdx % CARD_COLORS.length];
   const ss = getStatusStyle(show.status);
   const isDragging = dragId === show.id;
@@ -474,7 +525,15 @@ function ShowCard({show, colorIdx, onEdit, onDelete, onMoveTab, onDragStart, onD
       data-card-id={show.id}
       style={{background:col.bg, borderColor:col.border, animationDelay:`${index*0.035}s`}}
       draggable
-      onDragStart={e => { e.dataTransfer.effectAllowed='move'; onDragStart(show.id); }}
+      onDragStart={e => {
+        e.dataTransfer.effectAllowed = 'move';
+        // Use a blank 1x1 drag image so no browser ghost overlaps our CSS effect
+        const blank = document.createElement('canvas');
+        blank.width = blank.height = 1;
+        e.dataTransfer.setDragImage(blank, 0, 0);
+        // Small delay so browser snapshots card before we apply dragging class
+        setTimeout(() => onDragStart(show.id), 0);
+      }}
       onDragOver={e => { e.preventDefault(); onDragOver(show.id); }}
       onDrop={e => { e.preventDefault(); onDrop(show.id); }}
       onDragEnd={() => onDrop(null)}
@@ -528,6 +587,20 @@ function ShowCard({show, colorIdx, onEdit, onDelete, onMoveTab, onDragStart, onD
             </div>
           </div>
         )}
+
+        {/* ── Card Color Picker ── */}
+        <div className="color-picker-section">
+          <span className="color-picker-label">Card Color</span>
+          {CARD_COLORS.map((c, ci) => (
+            <div
+              key={ci}
+              className={`color-swatch${colorIdx === ci ? ' selected' : ''}`}
+              style={{background:c.accent, borderColor: colorIdx === ci ? '#fff' : 'transparent'}}
+              title={`Color ${ci + 1}`}
+              onClick={() => onColorChange(show.id, ci)}
+            />
+          ))}
+        </div>
 
       </div>
     </div>
@@ -1053,6 +1126,10 @@ function App() {
     setShows(p => p.map(s => s.id === id ? {...s, imdbId, imdbVerified: true} : s));
   }
 
+  function handleColorChange(id, colorIdx) {
+    setShows(p => p.map(s => s.id === id ? {...s, _colorIdx: colorIdx} : s));
+  }
+
   function handleMoveTab(id) {
     setShows(p=>p.map(s=>{
       if (s.id!==id) return s;
@@ -1158,15 +1235,9 @@ function App() {
   const tabShows = showsWithTab.filter(s=>s.tab===activeTab);
   const networks = ["All",...Array.from(new Set(tabShows.map(s=>s.network).filter(Boolean))).sort()];
   const filtered = filter==="All" ? tabShows : tabShows.filter(s=>s.network===filter);
-  // Migrate shows that don't have a persistent color yet (first load after update)
-  const showsWithColor = React.useMemo(() => {
-    let needsMigration = shows.some(s => s._colorIdx === undefined);
-    if (!needsMigration) return shows;
-    return shows.map((s, i) => s._colorIdx !== undefined ? s : {...s, _colorIdx: i % CARD_COLORS.length});
-  }, [shows]);
-  // Use stored color; fall back to position only if somehow still missing
+  // Build colorMap from stored _colorIdx (always stable per show)
   const colorMap = {};
-  showsWithColor.forEach((s,i) => { colorMap[s.id] = s._colorIdx ?? i; });
+  shows.forEach((s, i) => { colorMap[s.id] = s._colorIdx ?? (i % CARD_COLORS.length); });
 
   const watchingCount = showsWithTab.filter(s=>s.tab==='watching').length;
   const awaitingCount = showsWithTab.filter(s=>s.tab==='awaiting').length;
@@ -1256,6 +1327,7 @@ function App() {
                 dragId={dragId}
                 dragOverId={dragOver}
                 onImdbIdVerified={handleImdbIdVerified}
+                onColorChange={handleColorChange}
               />
             </React.Fragment>
           ))
