@@ -187,9 +187,11 @@
     .tab-btn.active .tab-count{background:rgba(232,184,75,.18);color:var(--accent);}
 
     /* ── DRAG & DROP ── */
-    .card{cursor:default;}
-    .card.dragging{opacity:0.30;transform:scale(0.97);}
-    .card.drag-over{outline:2px dashed var(--accent);outline-offset:3px;}
+    .card{cursor:default;transition:transform 0.18s ease,box-shadow 0.18s ease,opacity 0.15s ease;}
+    .card.dragging{opacity:0.22;transform:scale(0.96) rotate(-1deg);box-shadow:none!important;pointer-events:none;}
+    .card.drag-target{transform:translateY(-6px) scale(1.01);box-shadow:0 0 0 2px var(--accent),0 16px 40px rgba(0,0,0,0.5);}
+    .drop-slot{height:8px;border-radius:4px;margin:-4px 0;background:linear-gradient(90deg,transparent,var(--accent),var(--accent2),transparent);opacity:0;transition:opacity 0.15s,height 0.15s;}
+    .drop-slot.active{opacity:1;height:6px;}
     .drag-handle{display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:7px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.4);font-size:18px;cursor:grab;letter-spacing:1px;flex-shrink:0;user-select:none;-webkit-user-select:none;touch-action:none;transition:background .15s,color .15s;}
     .drag-handle:hover{background:rgba(255,255,255,.13);color:rgba(255,255,255,.75);}
     .drag-handle:active{cursor:grabbing;}
@@ -421,7 +423,7 @@ function RecTag({name}) {
   );
 }
 
-function ShowCard({show, colorIdx, onEdit, onDelete, onMoveTab, onDragStart, onDragOver, onDrop, dragId, onImdbIdVerified, index}) {
+function ShowCard({show, colorIdx, onEdit, onDelete, onMoveTab, onDragStart, onDragOver, onDrop, dragId, dragOverId, onImdbIdVerified, index}) {
   const col = CARD_COLORS[colorIdx % CARD_COLORS.length];
   const ss = getStatusStyle(show.status);
   const isDragging = dragId === show.id;
@@ -468,7 +470,7 @@ function ShowCard({show, colorIdx, onEdit, onDelete, onMoveTab, onDragStart, onD
 
   return (
     <div
-      className={`card${isDragging ? ' dragging' : ''}`}
+      className={`card${isDragging ? ' dragging' : dragOverId === show.id && dragId && dragId !== show.id ? ' drag-target' : ''}`}
       data-card-id={show.id}
       style={{background:col.bg, borderColor:col.border, animationDelay:`${index*0.035}s`}}
       draggable
@@ -952,6 +954,7 @@ function App() {
   const [dataModal, setDataModal] = useState(null); // {mode:'save'|'upload'}
   const [pasteText, setPasteText] = useState('');
   const [dragId, setDragId] = useState(null);
+  const [dragOver, setDragOver] = useState(null);
   const [zoom, setZoom] = useState(100);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const fileInputRef = useRef(null);
@@ -1001,7 +1004,19 @@ function App() {
   function showToast(msg) { setToast(msg); setTimeout(()=>setToast(""),2800); }
 
   function handleAdd(f) {
-    setShows(p=>[...p,{...f,id:Date.now(),tab:activeTab}]);
+    setShows(p => {
+      // Pick a color not used by adjacent shows (simple spread)
+      const usedIdxs = p.map(s => s._colorIdx).filter(n => n !== undefined);
+      let idx = p.length % CARD_COLORS.length;
+      // Walk forward until we find one not in last 3 used
+      const recent = usedIdxs.slice(-3);
+      let tries = 0;
+      while (recent.includes(idx) && tries < CARD_COLORS.length) {
+        idx = (idx + 1) % CARD_COLORS.length;
+        tries++;
+      }
+      return [...p, {...f, id:Date.now(), tab:activeTab, _colorIdx:idx}];
+    });
     setShowForm(false);
     showToast(`✓ "${f.name}" added to ${activeTab==='watching'?'Watching':'Awaiting'}`);
   }
@@ -1013,7 +1028,7 @@ function App() {
     setShows(prev => {
       // Remove the show being edited
       const rest = prev.filter(s => s.id !== editShow.id);
-      const updatedShow = {...cleanF, id: editShow.id};
+      const updatedShow = {...cleanF, id: editShow.id, _colorIdx: editShow._colorIdx};
       // Get shows in target tab (from rest, in their current order)
       const targetTabShows = rest.filter(s => (s.tab||'watching') === targetTab);
       // Insert at desired position
@@ -1058,12 +1073,14 @@ function App() {
 
   function handleDragOver(id) {
     dragOverId.current = id;
+    setDragOver(id);
   }
 
   // targetId: the card dropped onto (HTML5), or last card hovered (touch), or null to cancel
   function handleDrop(targetId) {
     const fromId = dragIdRef.current;
     setDragId(null);
+    setDragOver(null);
     dragIdRef.current = null;
     const toId = targetId ?? dragOverId.current;
     dragOverId.current = null;
@@ -1141,8 +1158,15 @@ function App() {
   const tabShows = showsWithTab.filter(s=>s.tab===activeTab);
   const networks = ["All",...Array.from(new Set(tabShows.map(s=>s.network).filter(Boolean))).sort()];
   const filtered = filter==="All" ? tabShows : tabShows.filter(s=>s.network===filter);
+  // Migrate shows that don't have a persistent color yet (first load after update)
+  const showsWithColor = React.useMemo(() => {
+    let needsMigration = shows.some(s => s._colorIdx === undefined);
+    if (!needsMigration) return shows;
+    return shows.map((s, i) => s._colorIdx !== undefined ? s : {...s, _colorIdx: i % CARD_COLORS.length});
+  }, [shows]);
+  // Use stored color; fall back to position only if somehow still missing
   const colorMap = {};
-  showsWithTab.forEach((s,i)=>{ colorMap[s.id]=i; });
+  showsWithColor.forEach((s,i) => { colorMap[s.id] = s._colorIdx ?? i; });
 
   const watchingCount = showsWithTab.filter(s=>s.tab==='watching').length;
   const awaitingCount = showsWithTab.filter(s=>s.tab==='awaiting').length;
@@ -1219,15 +1243,21 @@ function App() {
               }
             </div>
           : filtered.map((show,i)=>(
-            <ShowCard key={show.id} show={show} colorIdx={colorMap[show.id]??i} index={i}
-              onEdit={s=>setEditShow(s)} onDelete={s=>setDeleteShow(s)}
-              onMoveTab={handleMoveTab}
-              onDragStart={handleDragStart}
-              onDragOver={handleDragOver}
-              onDrop={handleDrop}
-              dragId={dragId}
-              onImdbIdVerified={handleImdbIdVerified}
-            />
+            <React.Fragment key={show.id}>
+              {dragId && dragOver === show.id && dragId !== show.id && (
+                <div className="drop-slot active"/>
+              )}
+              <ShowCard show={show} colorIdx={colorMap[show.id]??i} index={i}
+                onEdit={s=>setEditShow(s)} onDelete={s=>setDeleteShow(s)}
+                onMoveTab={handleMoveTab}
+                onDragStart={handleDragStart}
+                onDragOver={handleDragOver}
+                onDrop={handleDrop}
+                dragId={dragId}
+                dragOverId={dragOver}
+                onImdbIdVerified={handleImdbIdVerified}
+              />
+            </React.Fragment>
           ))
         }
       </div>
