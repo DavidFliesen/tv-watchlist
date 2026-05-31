@@ -225,6 +225,10 @@
     .move-tab-btn.to-awaiting:hover{background:rgba(56,189,248,.12);border-color:#38bdf8;}
     .move-tab-btn.to-watching{border-color:rgba(74,222,128,.35);color:#4ade80;}
     .move-tab-btn.to-watching:hover{background:rgba(74,222,128,.12);border-color:#4ade80;}
+    .move-tab-btn.to-completed{border-color:rgba(251,191,36,.35);color:#fbbf24;}
+    .move-tab-btn.to-completed:hover{background:rgba(251,191,36,.12);border-color:#fbbf24;}
+    .tab-btn.completed-tab.active::after{background:#fbbf24;}
+    .tab-btn.completed-tab.active .tab-count{background:rgba(251,191,36,.18);color:#fbbf24;}
 
     /* ── Data modal (save & upload) ── */
     .data-modal{background:#1a1a28;border:1px solid #3a3a55;border-radius:14px;width:100%;max-width:580px;max-height:90vh;overflow-y:auto;animation:slideUp .2s ease;}
@@ -450,7 +454,7 @@ function ShowCard({show, colorIdx, onEdit, onDelete, onMoveTab, onDragStart, onD
   const col = CARD_COLORS[colorIdx % CARD_COLORS.length];
   const ss = getStatusStyle(show.status);
   const isDragging = dragId === show.id;
-  const isWatching = (show.tab || 'watching') === 'watching';
+  const showTab = show.tab || 'watching';
   const handleRef = useRef(null);
   const lastOverId = useRef(null);
 
@@ -520,11 +524,21 @@ function ShowCard({show, colorIdx, onEdit, onDelete, onMoveTab, onDragStart, onD
             </div>
           </div>
           <div className="card-actions">
-            <button
-              className={`move-tab-btn ${isWatching ? 'to-awaiting' : 'to-watching'}`}
-              title={isWatching ? 'Move to Awaiting' : 'Move to Watching'}
-              onClick={() => onMoveTab(show.id)}
-            >{isWatching ? '→ Awaiting' : '→ Watching'}</button>
+            {showTab === 'watching' && (
+              <button className="move-tab-btn to-awaiting" title="Move to Awaiting" onClick={() => onMoveTab(show.id, 'awaiting')}>→ Awaiting</button>
+            )}
+            {showTab === 'watching' && (
+              <button className="move-tab-btn to-completed" title="Mark as Completed" onClick={() => onMoveTab(show.id, 'completed')}>✓ Done</button>
+            )}
+            {showTab === 'awaiting' && (
+              <button className="move-tab-btn to-watching" title="Move to Watching" onClick={() => onMoveTab(show.id, 'watching')}>→ Watching</button>
+            )}
+            {showTab === 'awaiting' && (
+              <button className="move-tab-btn to-completed" title="Mark as Completed" onClick={() => onMoveTab(show.id, 'completed')}>✓ Done</button>
+            )}
+            {showTab === 'completed' && (
+              <button className="move-tab-btn to-watching" title="Move back to Watching" onClick={() => onMoveTab(show.id, 'watching')}>→ Watching</button>
+            )}
             <button className="icon-btn" title="Edit" onClick={() => onEdit(show)}>✏️</button>
             <button className="icon-btn" title="Delete" onClick={() => onDelete(show)}>🗑️</button>
             <div ref={handleRef} className="drag-handle" title="Drag to reorder">⠿</div>
@@ -876,6 +890,7 @@ function ShowForm({initial, onSave, onClose, existingShows=[]}) {
                       <select value={selTab} onChange={e=>{set('tab',e.target.value);setEditPosition(1);}}>
                         <option value="watching">Now Watching</option>
                         <option value="awaiting">Awaiting</option>
+                        <option value="completed">Completed</option>
                       </select>
                     </div>
                     <div className="form-group">
@@ -1056,7 +1071,7 @@ function App() {
       return [...p, {...f, id:Date.now(), tab:activeTab, _colorIdx:idx}];
     });
     setShowForm(false);
-    showToast(`✓ "${f.name}" added to ${activeTab==='watching'?'Watching':'Awaiting'}`);
+    showToast(`✓ "${f.name}" added to ${activeTab==='watching'?'Now Watching':activeTab==='awaiting'?'Awaiting':'Completed'}`);
   }
   function handleEdit(f) {
     const targetTab = f.tab || 'watching';
@@ -1098,12 +1113,12 @@ function App() {
     setShows(p => p.map(s => s.id === id ? {...s, _colorIdx: colorIdx} : s));
   }
 
-  function handleMoveTab(id) {
+  function handleMoveTab(id, targetTab) {
     setShows(p=>p.map(s=>{
       if (s.id!==id) return s;
-      const newTab = (s.tab||'watching')==='watching' ? 'awaiting' : 'watching';
-      showToast(`"${s.name}" moved to ${newTab==='watching'?'Watching':'Awaiting'}`);
-      return {...s, tab:newTab};
+      const label = targetTab==='watching' ? 'Now Watching' : targetTab==='awaiting' ? 'Awaiting' : 'Completed';
+      showToast(`"${s.name}" moved to ${label}`);
+      return {...s, tab:targetTab};
     }));
   }
 
@@ -1207,8 +1222,9 @@ function App() {
   const colorMap = {};
   shows.forEach((s, i) => { colorMap[s.id] = s._colorIdx ?? (i % CARD_COLORS.length); });
 
-  const watchingCount = showsWithTab.filter(s=>s.tab==='watching').length;
-  const awaitingCount = showsWithTab.filter(s=>s.tab==='awaiting').length;
+  const watchingCount  = showsWithTab.filter(s=>s.tab==='watching').length;
+  const awaitingCount  = showsWithTab.filter(s=>s.tab==='awaiting').length;
+  const completedCount = showsWithTab.filter(s=>s.tab==='completed').length;
 
   return (
     <div className={`app${cssFullscreen?" css-fullscreen":""}`} style={{zoom:`${zoom}%`}}>
@@ -1229,6 +1245,9 @@ function App() {
         </button>
         <button className={`tab-btn${activeTab==='awaiting'?' active':''}`} onClick={()=>{setActiveTab('awaiting');setFilter('All');}}>
           Awaiting <span className="tab-count">{awaitingCount}</span>
+        </button>
+        <button className={`tab-btn completed-tab${activeTab==='completed'?' active':''}`} onClick={()=>{setActiveTab('completed');setFilter('All');}}>
+          Completed <span className="tab-count">{completedCount}</span>
         </button>
       </div>
 
@@ -1278,6 +1297,8 @@ function App() {
               No shows here yet.<br/>
               {activeTab==='awaiting'
                 ? <>Use the <strong>→ Awaiting</strong> button on any Watching card to move it here.</>
+                : activeTab==='completed'
+                ? <>Use the <strong>✓ Done</strong> button on any card to mark a show as completed.</>
                 : <>Click <strong>+ ADD SHOW</strong> to add one.</>
               }
             </div>
