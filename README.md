@@ -1,6 +1,6 @@
 # 📺 TV-Watchlist — TV Schedule Tracker
 
-A beautiful, fully self-contained TV show tracker. Search from a built-in database of 65 shows, look up any show live on the internet, organize shows into two tabs, drag to reorder, view IMDb pages, and track next-season return dates — all in a single HTML file with no account, no API keys, and no installation required.
+A beautiful, fully self-contained TV show tracker. Search from a built-in database of 65 shows, look up any show live on the internet, organize shows into three tabs, drag to reorder, view IMDb pages, and track next-season return dates — all in a single HTML file with no account, no API keys, and no installation required.
 
 🔗 **Live app:** <a href="https://davidfliesen.github.io/tv-watchlist" target="_blank">davidfliesen.github.io/tv-watchlist</a>
 
@@ -30,9 +30,9 @@ A beautiful, fully self-contained TV show tracker. Search from a built-in databa
 
 ### 📝 Show Management
 
-- **Two tabs** — **Now Watching** for shows you’re currently following, **Awaiting** for shows between seasons; count badge on each tab
-- **Move between tabs** — every card has a **→ Awaiting** or **→ Watching** button to shift it with one tap
-- **Tab & Position in edit** — open any card’s edit form to change its tab and exact position in the list from a dropdown; no dragging required
+- **Three tabs** — **Now Watching** for shows you’re actively following, **Awaiting** for shows between seasons, **Completed** for finished shows; count badge on each tab
+- **Move between tabs** — context-aware buttons on every card: Watching cards have **→ Awaiting** and **✓ Done**; Awaiting cards have **→ Watching** and **✓ Done**; Completed cards have **→ Watching** to reactivate
+- **Tab & Position in edit** — open any card’s edit form to change its tab (Now Watching, Awaiting, or Completed) and exact position in the list from dropdowns; no dragging required
 - **Add shows** — type a name and pick from search results; all fields populate automatically; new shows are added to whichever tab is active
 - **Edit shows** — update any field, including tab, position, and IMDb ID, with the ✏️ button
 - **Delete shows** — remove individual shows with the 🗑️ button and a confirmation prompt
@@ -88,44 +88,54 @@ Send the HTML file to anyone. They open it in their browser and it works immedia
 
 ## 📋 How To Use
 
-|Action                              |How                                                                                                                  |
-|------------------------------------|---------------------------------------------------------------------------------------------------------------------|
-|**Switch tabs**                     |Click **Now Watching** or **Awaiting** at the top                                                                    |
-|**Change a card’s color**           |Click any of the 12 color swatches in the **Card Color** row at the bottom of the card                               |
-|**Move a show between tabs**        |Click **→ Awaiting** or **→ Watching** on any card                                                                   |
-|**Reorder cards (desktop)**         |Drag the **⠿** handle on any card to reorder; target card bounces to show landing position                           |
-|**Reorder cards (iPad/iPhone)**     |Touch and hold the **⠿** handle, then drag; same bounce animation shows drop target                                  |
-|**Change tab or position precisely**|Click ✏️ edit — Tab and Position dropdowns are at the top of the form                                                 |
-|**Add a show**                      |Click **+ ADD SHOW**, type a name — local results appear instantly, internet results load automatically              |
-|**Show found online**               |Results labeled **Found Online 🌐** pull live data from TVmaze                                                        |
-|**Show not found anywhere**         |Click “None of these — enter manually”                                                                               |
-|**Duplicate show**                  |App warns you and points to the edit button instead                                                                  |
-|**View show on IMDb**               |Click the yellow **IMDb** button below the show title — it looks up the correct page via TVmaze and opens it directly|
-|**View a recommended show on IMDb** |Click any show name in the “If you like this, also watch” section                                                    |
-|**Set a custom IMDb ID**            |Click ✏️ edit — enter a title ID (e.g. `tt0944947`) or paste a full IMDb URL                                          |
-|**Edit a show**                     |Click the ✏️ pencil icon on any card                                                                                  |
-|**Delete a show**                   |Click the 🗑️ trash icon and confirm                                                                                   |
-|**Filter by network**               |Click any network pill in the sticky toolbar (per tab)                                                               |
-|**Zoom in/out**                     |Use − / 100% / + in the view toolbar; click 100% to reset                                                            |
-|**Full Screen**                     |Click **⛶ Full Screen** in the view toolbar                                                                          |
-|**Save Data**                       |Click 💾 **Save Data** — choose **Download File** (desktop) or **Copy to Clipboard** (iPad/iPhone)                    |
-|**Upload Data**                     |Click 📂 **Upload Data** — choose **Upload from File** or **Paste from Clipboard**                                    |
-|**Clear All**                       |Click 🗑️ **Clear All** — removes all shows after confirmation                                                         |
-|**Learn more**                      |Click 📖 **More About App** in the header                                                                             |
+|Action                              |How                                                                                                                          |
+|------------------------------------|-----------------------------------------------------------------------------------------------------------------------------|
+|**Switch tabs**                     |Click **Now Watching**, **Awaiting**, or **Completed** at the top                                                            |
+|**Change a card’s color**           |Click any of the 12 color swatches in the **Card Color** row at the bottom of the card                                       |
+|**Move a show between tabs**        |Watching cards: **→ Awaiting** or **✓ Done** · Awaiting cards: **→ Watching** or **✓ Done** · Completed cards: **→ Watching**|
+|**Reorder cards (desktop)**         |Drag the **⠿** handle on any card to reorder; target card bounces to show landing position                                   |
+|**Reorder cards (iPad/iPhone)**     |Touch and hold the **⠿** handle, then drag; same bounce animation shows drop target                                          |
+|**Change tab or position precisely**|Click ✏️ edit — Tab dropdown (Now Watching / Awaiting / Completed) and Position are at the top of the form                    |
+|**Add a show**                      |Click **+ ADD SHOW**, type a name — local results appear instantly, internet results load automatically                      |
+|**Show found online**               |Results labeled **Found Online 🌐** pull live data from TVmaze                                                                |
+|**Show not found anywhere**         |Click “None of these — enter manually”                                                                                       |
+|**Duplicate show**                  |App warns you and points to the edit button instead                                                                          |
+|**View show on IMDb**               |Click the yellow **IMDb** button below the show title — it looks up the correct page via TVmaze and opens it directly        |
+|**View a recommended show on IMDb** |Click any show name in the “If you like this, also watch” section                                                            |
+|**Set a custom IMDb ID**            |Click ✏️ edit — enter a title ID (e.g. `tt0944947`) or paste a full IMDb URL                                                  |
+|**Edit a show**                     |Click the ✏️ pencil icon on any card                                                                                          |
+|**Delete a show**                   |Click the 🗑️ trash icon and confirm                                                                                           |
+|**Filter by network**               |Click any network pill in the sticky toolbar (per tab)                                                                       |
+|**Zoom in/out**                     |Use − / 100% / + in the view toolbar; click 100% to reset                                                                    |
+|**Full Screen**                     |Click **⛶ Full Screen** in the view toolbar                                                                                  |
+|**Save Data**                       |Click 💾 **Save Data** — choose **Download File** (desktop) or **Copy to Clipboard** (iPad/iPhone)                            |
+|**Upload Data**                     |Click 📂 **Upload Data** — choose **Upload from File** or **Paste from Clipboard**                                            |
+|**Clear All**                       |Click 🗑️ **Clear All** — removes all shows after confirmation                                                                 |
+|**Learn more**                      |Click 📖 **More About App** in the header                                                                                     |
 
 -----
 
-## 📂 Now Watching vs Awaiting
+## 📂 Three Tabs — Now Watching, Awaiting, Completed
 
-The two tabs let you split your list into shows you’re actively watching and shows you’re waiting on.
+The three tabs let you organize your entire TV viewing history in one place.
 
-**Now Watching** — shows currently airing that you follow week to week.
+**Now Watching** — shows currently airing that you follow week to week. New shows are added here by default.
 
-**Awaiting** — shows between seasons, renewed but not yet returned, or ones you plan to start when they come back.
+**Awaiting** — shows between seasons, renewed but not yet back, or ones you plan to start when they return.
 
-Three ways to move a show between tabs:
+**Completed** — shows you’ve finished watching, whether they ended naturally or you’re done with them. Great for your viewing history.
 
-1. Tap **→ Awaiting** / **→ Watching** on the card for a one-tap move
+**Moving shows between tabs:**
+
+|From        |Buttons available                         |
+|------------|------------------------------------------|
+|Now Watching|**→ Awaiting** (blue) · **✓ Done** (gold) |
+|Awaiting    |**→ Watching** (green) · **✓ Done** (gold)|
+|Completed   |**→ Watching** (green) to reactivate      |
+
+Three ways to move a show:
+
+1. Use the tab buttons on the card for a one-tap move
 1. Open ✏️ edit and change the **Tab** dropdown — also set the exact **Position** at the same time
 1. Drag the card to reorder within the same tab (cross-tab moves use the button or edit form)
 
@@ -200,7 +210,7 @@ Your watchlist saves automatically to browser `localStorage` on every change. Th
 |Show database      |65 hardcoded shows with full metadata                                                                                                                     |
 |Internet search    |[TVmaze API](https://www.tvmaze.com/api) — free, no key required, CORS-enabled                                                                            |
 |Recommendations    |27-genre built-in map for genre-matched suggestions                                                                                                       |
-|Tabs               |Now Watching / Awaiting — stored per show, persisted in localStorage                                                                                      |
+|Tabs               |Now Watching / Awaiting / Completed — stored as `tab` field per show, persisted in localStorage                                                           |
 |Card colors        |Stored as `_colorIdx` per show in localStorage; assigned at load time; user-selectable via 12-swatch picker on each card                                  |
 |Drag & drop        |HTML5 drag with blank canvas `setDragImage` override (suppresses browser ghost) + non-passive touch events on ⠿ handle; `@keyframes` bounce on drop target|
 |Fullscreen         |Real Fullscreen API (desktop) + webkit prefix + CSS fixed-viewport fallback (iOS Chrome)                                                                  |
@@ -209,7 +219,7 @@ Your watchlist saves automatically to browser `localStorage` on every change. Th
 |Zoom               |CSS `zoom` property, 60%–150% in 10% steps                                                                                                                |
 |IMDb links         |TVmaze `singlesearch` API used on click to get verified `externals.imdb` ID; cached per show after first lookup; rec tags use same lookup                 |
 |External calls     |Google Fonts (cosmetic only) + TVmaze API (show search only) + IMDb (opens in new tab on click)                                                           |
-|File size          |~104 KB (single file, everything included)                                                                                                                |
+|File size          |~107 KB (single file, everything included)                                                                                                                |
 |Browser support    |Chrome, Firefox, Safari, Edge (any modern browser)                                                                                                        |
 |Starts with        |Empty list — users build their own from scratch                                                                                                           |
 
